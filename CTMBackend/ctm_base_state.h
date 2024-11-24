@@ -9,7 +9,8 @@ enum class CTMScreenState
     PROCESSES,
     APPS,
     SERVICES,
-    SETTINGS
+    SETTINGS,
+    NONE
 };
 
 class CTMBaseState

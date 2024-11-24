@@ -3,7 +3,8 @@
 ### I am making this application to sort of try to mimic Windows 'Task Manager'. It uses ImGui to render all the content of CTM.
 
 ## Features
-- Monitoring processes: Provides ProcessID, CPU usage, Memory Usage, and Disk Usage.
+- Single instance app: Only one instance of application is allowed at a time throughout system.
+- Monitoring processes: Provides info such as ProcessID, CPU usage, Memory Usage, and Disk Usage.
 
 ## Requirements
 - C++17 or later (for the build system)

@@ -236,10 +236,10 @@ void CTMApp::HandleResizing()
 void CTMApp::InitializeMainWindow()
 {
     // Create application window
-    wc = { sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"CTMImGui", nullptr };
+    wc = { sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, CTM_APP_CLASS_NAME, nullptr };
     ::RegisterClassExW(&wc);
     
-    windowHandle = ::CreateWindowExW(WS_EX_LAYERED, wc.lpszClassName, L"DirectXCTMImGui", WS_POPUP,
+    windowHandle = ::CreateWindowExW(WS_EX_LAYERED, wc.lpszClassName, CTM_APP_WINDOW_NAME, WS_POPUP,
                                     0, 0, windowWidth, windowHeight, nullptr, nullptr, wc.hInstance, nullptr);
     
     //Set the App instance pointer in the window's user data

@@ -28,7 +28,7 @@ class CTMAppContent
 
     private: //Variables
         std::unique_ptr<CTMBaseState> currentScreen;
-        CTMScreenState currentScreenState;
+        CTMScreenState currentScreenState = CTMScreenState::NONE;
 };
 
 
