@@ -3,15 +3,20 @@
 
 #include "../ImGUI/imgui.h"
 #include "ctm_base_state.h"
+#include "ctm_udp_event_listener.h"
 //Stdlib stuff
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <thread>
+#include <atomic>
+#include <algorithm>
 #include <iostream> //For debugging
 //Winapi stuff
 #include <windows.h>
 #include <Psapi.h>
 #include <winternl.h>
+#include <ntstatus.h>
 
 //To get the same result as task manager we use NtQueryInformationProcess function (part of ntdll.dll) for:
 //  -Memory usage
@@ -37,25 +42,33 @@ typedef struct _VM_COUNTERS_EX2 {
     ULONGLONG SharedCommitUsage;
 } VM_COUNTERS_EX2, *PVM_COUNTERS_EX2;
 
-//We use dynamic loading of libraries
+//These functions belong to NT DLL, which will be linked during runtime
 typedef NTSTATUS(NTAPI* NtQueryInformationProcess_t)
                 (HANDLE, PROCESSINFOCLASS, PVOID, ULONG, PULONG);
 
-//Store process information
+typedef NTSTATUS(NTAPI* NtQuerySystemInformation_t)
+                (SYSTEM_INFORMATION_CLASS, PVOID, ULONG, PULONG);
+
+
+//--------------------Some useful structs--------------------
 struct ProcessInfo
 {
-    DWORD       processId;
-    std::string name;
+    //These are in a specific order for the sake of 8-byte alignment
+    //Also it doesn't matter if i use ('bool' keyword) or ('BOOL' typedef) when it is right below DWORD cuz alignment
+    //This version gives me 80 bytes total, but when i push BOOL below std::string, it gives me 88 bytes, so yeah
     double      memoryUsage;
     double      diskUsage;
     double      cpuUsage;
+    ULONGLONG   udpUsage;
+    DWORD       processId;
+    BOOL        isStaleEntry = FALSE; //Every entry is not stale by default
+    std::string name;
 
-    ProcessInfo(DWORD processId, const std::string& name, double memoryUsage, double diskUsage, double cpuUsage)
-        : processId(processId), name(name), memoryUsage(memoryUsage), diskUsage(diskUsage), cpuUsage(cpuUsage)
+    ProcessInfo(DWORD processId, const std::string& name, double memoryUsage, double diskUsage, double cpuUsage, ULONGLONG udpUsage)
+        : processId(processId), name(name), memoryUsage(memoryUsage), diskUsage(diskUsage), cpuUsage(cpuUsage), udpUsage(udpUsage)
     {}
 };
 
-//Store previous update information
 struct PreviousUpdateInformation
 {
     //CPU
@@ -65,9 +78,10 @@ struct PreviousUpdateInformation
     IO_COUNTERS prevIOCounter;
 };
 
-//Using statement to make our life easier
+//'using' makes my life much easier instead of writing this horrendously long type everywhere
 using ProcessMap             = std::unordered_map<std::string, std::vector<ProcessInfo>>;
 using PreviousInformationMap = std::unordered_map<DWORD, PreviousUpdateInformation>;
+using ProcessInfoBuffer      = std::vector<BYTE>;
 
 class CTMProcessScreen : public CTMBaseState
 {
@@ -79,9 +93,18 @@ protected:
     void OnRender() override;
     void OnUpdate() override;
 
+private: //Constructor initialization and destructor functions
+    bool CTMConstructorInitNTDLL();
+    bool CTMConstructorInitUDPUsageThread();
+
+    void CTMDestructorCleanNTDLL();
+    void CTMDestructorCleanUDPUsageThread();
+
 private: //Helper function
     void RenderProcessInstances(const std::vector<ProcessInfo>&);
     void UpdateProcessInfo();
+    void UpdateMapWithProcessInfo(DWORD, const std::string&, double, double, double, ULONGLONG);
+    void RemoveStaleEntries();
 
 private: //Helper function as well, just wanted to keep them seperate
     double CalculateMemoryUsage(HANDLE);
@@ -91,10 +114,18 @@ private: //Helper function as well, just wanted to keep them seperate
 private: //NT dll
     HMODULE hNtdll = nullptr;
     NtQueryInformationProcess_t NtQueryInformationProcess = nullptr;
+    NtQuerySystemInformation_t  NtQuerySystemInformation  = nullptr;
+
+private: //ETW listener for udp usage
+    UDPEventListener udpUsageEventListener;
+    std::thread      udpUsageEventListenerThread;
 
 private:
     //Always group the processes together (app name as the key)
     ProcessMap groupedProcesses;
+    //Get the process information directly to this buffer
+    ULONG             processInfoBufferSize = 1024;
+    ProcessInfoBuffer processInfoBuffer;
     
     //Consolidated map for per-process previous update information
     PreviousInformationMap perProcessPreviousInformation;

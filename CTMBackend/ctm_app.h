@@ -36,7 +36,7 @@ class CTMApp {
         ~CTMApp();
 
         CTMAppErrorCodes Initialize();
-        void          Run();
+        void             Run();
     
     private: //Render functions
         void RenderFrameContent();

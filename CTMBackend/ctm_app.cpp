@@ -327,14 +327,14 @@ void CTMApp::SetMaxResWindowSize()
 }
 
 // OUTCAST lmao
-LRESULT WINAPI CTMApp::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT WINAPI CTMApp::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    CTMApp* pApp = reinterpret_cast<CTMApp*>(::GetWindowLongPtr(hwnd, GWLP_USERDATA));
+    CTMApp* pApp = reinterpret_cast<CTMApp*>(::GetWindowLongPtr(hWnd, GWLP_USERDATA));
 
     if (pApp)
-        pApp->HandleWndProc(hwnd, msg, wParam, lParam);
+        pApp->HandleWndProc(hWnd, msg, wParam, lParam);
 
-    return ::DefWindowProc(hwnd, msg, wParam, lParam);
+    return ::DefWindowProc(hWnd, msg, wParam, lParam);
 }
 
 LRESULT WINAPI CTMApp::HandleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
