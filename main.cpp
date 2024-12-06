@@ -18,7 +18,7 @@ int main(void)
     //Prompt user to run this process as Administrator if it isn't running as Administrator already
     if(!IsUserAdmin())
     {
-        if (!PromptUserForAdministratorAccess())
+        if(!PromptUserForAdministratorAccess())
         {
             std::cerr << "Failed to relaunch with administrator privileges. Exiting.\n";
             return 1;

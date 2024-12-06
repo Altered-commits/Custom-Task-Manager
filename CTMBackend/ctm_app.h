@@ -10,14 +10,11 @@
 #include "ctm_app_content.h"
 //Windows stuff
 #include <d3d11.h>
-#include <tchar.h>
-#include <WinUser.h>
+#include <windowsx.h>
 //Std lib stuff
-#include <functional>
-#include <chrono>
-#include <thread>
+#include <iostream> //For debugging purposes
 
-//Forward declare 
+//Forward declare as told by imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 //App error codes
@@ -28,36 +25,46 @@ enum class CTMAppErrorCodes
     INIT_SUCCESS,
 };
 
+enum class CTMAppNCButtonState
+{
+    NO_BUTTON_HOVERED,
+    CLOSE_BUTTON_HOVERED,
+    MAXIMIZE_BUTTON_HOVERED,
+    MINIMIZE_BUTTON_HOVERED
+};
+
 class CTMApp {
     public:
-        CTMApp();
-        CTMApp(const CTMApp&) = delete;
-        CTMApp(CTMApp&&)      = delete;
+        CTMApp() = default;
         ~CTMApp();
 
+        //No need for copy or move constructors
+        CTMApp(const CTMApp&)            = delete;
+        CTMApp& operator=(const CTMApp&) = delete;
+        CTMApp(CTMApp&&)                 = delete;
+        CTMApp& operator=(CTMApp&&)      = delete;
+
+        //Main stuff
         CTMAppErrorCodes Initialize();
         void             Run();
     
     private: //Render functions
         void RenderFrameContent();
         void RenderFrame(ImGuiIO&);
+        void RenderNCRegionButton(const char*, const ImVec2&, const ImVec2&, const ImVec4&, const ImVec4&, CTMAppNCButtonState);
         void PresentFrame();
-        //Helper render functions
-        void RenderNCRegionButton(const char*, const ImVec2&, const ImVec2&, const ImVec4&, const ImVec4&, std::function<void(void)>);
     
-    private: //Main loop handlers
+    private: //Main loop helper functions
         void HandleMessages();
         bool HandleOcclusion();
         void HandleResizing();
 
     private: //CTM variables
-        ImVec2 maxMainWindowSize, minMainWindowSize = {900, 600}; //maxMainWindowSize set in SetMaxResWindowSize
-        //Maximize button variables
-        ImVec2 originalWindowPos, originalWindowSize;
-        bool   isMainWindowMaximized = false;
+        bool isMainWindowMaximized = false;
         //NC Region variables
-        const char* NCRegionAppTitle      = "Walmart Task Manager";
-        ImVec2      NCRegionButtonSize    = {NCREGION_HEIGHT, NCREGION_HEIGHT};
+        const char*         NCRegionAppTitle    = "Walmart Task Manager";
+        ImVec2              NCRegionButtonSize  = {NCREGION_HEIGHT, NCREGION_HEIGHT};
+        CTMAppNCButtonState NCRegionButtonState = CTMAppNCButtonState::NO_BUTTON_HOVERED;
     
     private: //CTM Content variables
         CTMAppContent appContent;
@@ -70,9 +77,9 @@ class CTMApp {
         LRESULT WINAPI        HandleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
     private: //Window Helper functions
-        void SetMaxResWindowSize();
         void InitializeMainWindow();
         void SetupImGui();
+        bool IsWindowMaximized(HWND);
 
         bool CreateDeviceD3D();
         void CleanupDeviceD3D();
@@ -80,9 +87,9 @@ class CTMApp {
         void CleanupRenderTarget();
 
     private: //Idk Variables
-        int windowWidth  = 1280;
-        int windowHeight = 800;
-        int done         = false;
+        int windowWidth     = 1280;
+        int windowHeight    = 800;
+        int done            = false;
 
     private: //OS Window creation Variables
         WNDCLASSEXW              wc           = {};          
