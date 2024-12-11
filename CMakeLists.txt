@@ -12,7 +12,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
 # Add ImGui source files
 file(GLOB IMGUI_SOURCES "ImGUI/*.cpp")
 file(GLOB IMGUI_BACKEND_SOURCES "ImGUIBackend/*.cpp")
-file(GLOB CTM_SOURCES "CTMBackend/*.cpp")
+
+# Add CTMBackend source files recursively
+file(GLOB_RECURSE CTM_SOURCES "CTMBackend/*.cpp")
 
 # Add executable target
 add_executable(CTMApp main.cpp ${IMGUI_SOURCES} ${IMGUI_BACKEND_SOURCES} ${CTM_SOURCES})

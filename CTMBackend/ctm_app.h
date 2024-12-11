@@ -38,7 +38,7 @@ class CTMApp {
         CTMApp() = default;
         ~CTMApp();
 
-        //No need for copy or move constructors
+        //No need for copy or move operations
         CTMApp(const CTMApp&)            = delete;
         CTMApp& operator=(const CTMApp&) = delete;
         CTMApp(CTMApp&&)                 = delete;
@@ -80,6 +80,8 @@ class CTMApp {
         void InitializeMainWindow();
         void SetupImGui();
         bool IsWindowMaximized(HWND);
+        bool IsWindows10OrGreater();
+        void TryRemoveWindowsRoundedCorners();
 
         bool CreateDeviceD3D();
         void CleanupDeviceD3D();
@@ -87,9 +89,9 @@ class CTMApp {
         void CleanupRenderTarget();
 
     private: //Idk Variables
-        int windowWidth     = 1280;
-        int windowHeight    = 800;
-        int done            = false;
+        int windowWidth     = CTM_APP_WINDOW_WIDTH;
+        int windowHeight    = CTM_APP_WINDOW_HEIGHT;
+        int done            = false; //Quite an important variable
 
     private: //OS Window creation Variables
         WNDCLASSEXW              wc           = {};          

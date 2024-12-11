@@ -1,4 +1,5 @@
 #include "ctm_app.h"
+#include <dwmapi.h>
 
 CTMApp::~CTMApp()
 {
@@ -32,6 +33,9 @@ CTMAppErrorCodes CTMApp::Initialize()
 
     //Initialize ImGui
     SetupImGui();
+
+    //For Windows 11 as it has rounded corners, it sort of doesn't match my apps theme of pixelated stuff
+    TryRemoveWindowsRoundedCorners();
     
     //Initialize ImGui fonts
     ImGuiIO& io = ImGui::GetIO();
@@ -227,7 +231,7 @@ void CTMApp::InitializeMainWindow()
     wc = { sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, CTM_APP_CLASS_NAME, nullptr };
     ::RegisterClassExW(&wc);
 
-    //Create the actual window
+    //Create the actual window with sysmenu, but we override it anyways with our ImGui window
     windowHandle = ::CreateWindowW(wc.lpszClassName, CTM_APP_WINDOW_NAME, WS_THICKFRAME | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX,
                                     100, 100, windowWidth, windowHeight, nullptr, nullptr, wc.hInstance, this); //Passing 'this' to lpParam to access it in WndProc later
 }
@@ -255,6 +259,40 @@ bool CTMApp::IsWindowMaximized(HWND hWnd)
         return windowPlacement.showCmd == SW_SHOWMAXIMIZED;
 
     return false;
+}
+
+bool CTMApp::IsWindows10OrGreater()
+{
+    typedef LONG(WINAPI* RtlGetVersionPtr)(PRTL_OSVERSIONINFOW);
+    
+    HMODULE hNtdll = ::GetModuleHandleW(L"ntdll.dll");
+    if (!hNtdll)
+        return false;
+
+    auto RtlGetVersion = (RtlGetVersionPtr)::GetProcAddress(hNtdll, "RtlGetVersion");
+    if (!RtlGetVersion)
+        return false;
+
+    RTL_OSVERSIONINFOW osvi  = { 0 };
+    osvi.dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOW);
+
+    if (RtlGetVersion(&osvi) == 0)
+        return (osvi.dwMajorVersion > 10) || 
+               (osvi.dwMajorVersion == 10 && osvi.dwMinorVersion >= 0);
+
+    return false;
+}
+
+void CTMApp::TryRemoveWindowsRoundedCorners()
+{
+    if(IsWindows10OrGreater())
+    {
+        //Defining it on my own as GCC is not recognizing the enums properly, even when i include the dwmapi.h header file
+        DWORD DWMWAWindowCornerPreference = 33; //Referring to the enum value -> DWMWA_WINDOW_CORNER_PREFERENCE
+        DWORD DWMWCPDoNotRound            = 1;  //Referring to the enum value -> DWMWCP_DONOTROUND
+        if(FAILED(DwmSetWindowAttribute(windowHandle, DWMWAWindowCornerPreference, &DWMWCPDoNotRound, sizeof(DWMWCPDoNotRound))))
+            std::cerr << "Failed to make the window corners square, using the default window corner\n";
+    }
 }
 
 //----------D3D Stuff----------
@@ -321,8 +359,8 @@ LRESULT WINAPI CTMApp::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
     {
         MINMAXINFO* windowSizeInfo = reinterpret_cast<MINMAXINFO*>(lParam);
 
-        windowSizeInfo->ptMinTrackSize.x = 1200;
-        windowSizeInfo->ptMinTrackSize.y = 600;
+        windowSizeInfo->ptMinTrackSize.x = CTM_APP_WINDOW_MIN_WIDTH;
+        windowSizeInfo->ptMinTrackSize.y = CTM_APP_WINDOW_MIN_HEIGHT;
 
         return 0; //This indicates that the message has been handled
     }

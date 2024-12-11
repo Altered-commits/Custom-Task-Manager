@@ -3,7 +3,7 @@
 
 /*
  * I did not want to clutter main.cpp file, hence i created this file.
- * This just stores all the functions which were once written in main.cpp and will further be written.
+ * This just stores all the functions / classes which were once written in main.cpp and will further be written.
  */
 
 #include <windows.h>

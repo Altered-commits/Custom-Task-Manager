@@ -53,7 +53,7 @@ int main(void)
             if(SendMessageTimeoutW(hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG, 2000, NULL))
             {
                 ShowWindow(hWnd, SW_RESTORE);
-                SetForegroundWindow(hWnd);    
+                SetForegroundWindow(hWnd);
 
                 //Close the reference of mutex, OnlyCloseHandle sets hMutex to nullptr so the mutexGuard no longer has the ref to it
                 mutexGuard.OnlyCloseHandle();
