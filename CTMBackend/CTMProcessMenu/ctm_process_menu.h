@@ -102,11 +102,12 @@ struct ProcessInfo
     double      memoryUsage;
     double      cpuUsage;
     double      networkUsage;
+    double      fileUsage;
     DWORD       processId;
     BOOL        isStaleEntry = FALSE; //Every entry is not stale by default
 
-    ProcessInfo(DWORD processId, double memoryUsage, double cpuUsage, double networkUsage)
-        : processId(processId), memoryUsage(memoryUsage), cpuUsage(cpuUsage), networkUsage(networkUsage)
+    ProcessInfo(DWORD processId, double memoryUsage, double cpuUsage, double networkUsage, double fileUsage)
+        : processId(processId), memoryUsage(memoryUsage), cpuUsage(cpuUsage), networkUsage(networkUsage), fileUsage(fileUsage)
     {}
 };
 
@@ -148,7 +149,7 @@ private: //Helper function
     void   UpdateProcessInfo();
     void   UpdateProcessMapWithProcessHandle(HANDLE, DWORD, const std::string&, FILETIME, FILETIME);
     void   UpdateProcessMapWithoutProcessHandle(DWORD, const std::string&, PCTM_SYSTEM_PROCESS_INFORMATION, FILETIME, FILETIME);
-    void   UpdateProcessMap(DWORD, const std::string&, double, double, double);
+    void   UpdateProcessMap(DWORD, const std::string&, double, double, double, double);
     //
     HANDLE GetProcessHandleFromId(DWORD);
     void   RemoveStaleEntries();

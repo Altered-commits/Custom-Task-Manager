@@ -120,16 +120,19 @@ void CTMProcessScreen::CTMDestructorCleanMappedHandles()
 //--------------------MAIN RENDER AND UPDATE FUNCTIONS--------------------
 void CTMProcessScreen::OnRender()
 {
-    if (ImGui::BeginTable("ProcessesTable", 5, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Resizable))
+    if (ImGui::BeginTable("ProcessesTable", 6, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersInnerV |
+                                               ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollX))
     {
-        ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableSetupColumn("PID", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableSetupColumn("CPU (%)", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableSetupColumn("Memory (MB)", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableSetupColumn("Network (MB/s)", ImGuiTableColumnFlags_WidthFixed);
+        ImGui::TableSetupColumn("File RW (MB/s)", ImGuiTableColumnFlags_WidthFixed);
 
         ImGui::TableHeadersRow();
 
+        //Render rest of the processes as is
         for (const auto& groupedProcess : groupedProcessesMap)
         {
             const auto& appName      = groupedProcess.first;
@@ -147,12 +150,13 @@ void CTMProcessScreen::OnRender()
                 ImGui::Text("%d", appProcesses[0].processId);
             
             //Third, fourth and fith column -> Display total usage initially
-            double totalCPUUsage = 0.0, totalMemoryUsage = 0.0, totalNetworkUsage = 0;
+            double totalCPUUsage = 0.0, totalMemoryUsage = 0.0, totalNetworkUsage = 0.0, totalFileUsage = 0.0;
             for(const auto& process : appProcesses)
             {
                 totalCPUUsage      += process.cpuUsage;
                 totalMemoryUsage   += process.memoryUsage;
                 totalNetworkUsage  += process.networkUsage;
+                totalFileUsage     += process.fileUsage;
             }
 
             ImGui::TableSetColumnIndex(2);
@@ -163,6 +167,9 @@ void CTMProcessScreen::OnRender()
 
             ImGui::TableSetColumnIndex(4);
             ImGui::Text("%.2lf", totalNetworkUsage);
+
+            ImGui::TableSetColumnIndex(5);
+            ImGui::Text("%.2lf", totalFileUsage);
 
             //If we expand the tree, display rest of the details
             if(expandTree)
@@ -206,6 +213,9 @@ void CTMProcessScreen::RenderProcessVector(const std::vector<ProcessInfo>& appPr
 
         ImGui::TableSetColumnIndex(4);
         ImGui::Text("%.2lf", process.networkUsage);
+
+        ImGui::TableSetColumnIndex(5);
+        ImGui::Text("%.2lf", process.fileUsage);
     }
 }
 
@@ -293,23 +303,33 @@ void CTMProcessScreen::UpdateProcessMapWithProcessHandle(HANDLE hProcess, DWORD 
      * Some processes allow OpenProcess to run on them, which can be used to get valid stuff without using weird undocumented custom stuff
      */
     //Memory Usage
-    DOUBLE memUsage = CalculateMemoryUsage(hProcess);
+    double memUsage = CalculateMemoryUsage(hProcess);
 
     //CPU Usage
-    DOUBLE cpuUsage = CalculateCpuUsage(hProcess, processId, ftSysKernel, ftSysUser);
+    double cpuUsage = CalculateCpuUsage(hProcess, processId, ftSysKernel, ftSysUser);
 
     //Network Usage
-    DOUBLE networkUsage = 0;
-    auto it = globalProcessNetworkUsageMap.find(processId);
-    if(it != globalProcessNetworkUsageMap.end())
+    double networkUsage = 0;
+    auto   networkIt    = globalProcessNetworkUsageMap.find(processId);
+    if(networkIt != globalProcessNetworkUsageMap.end())
     {
-        //Set it to 0 as soon as you use it, that will mark the data per second
-        networkUsage = (it->second / (1024.0 * 1024.0));
-        it->second   = 0;
+        //Set networkIt to 0 as soon as you use networkIt, that will mark the data per second
+        networkUsage = (networkIt->second / (1024.0 * 1024.0));
+        networkIt->second   = 0;
+    }
+
+    //File Usage
+    double fileUsage = 0;
+    auto   fileIt    = globalProcessFileUsageMap.find(processId);
+    if(fileIt != globalProcessFileUsageMap.end())
+    {
+        //Set fileIt to 0 as soon as you use fileIt, that will mark the data per second
+        fileUsage  = (fileIt->second / (1024.0 * 1024.0));
+        fileIt->second = 0;
     }
 
     //Update the grouped processes map
-    UpdateProcessMap(processId, processName, memUsage, cpuUsage, networkUsage);
+    UpdateProcessMap(processId, processName, memUsage, cpuUsage, networkUsage, fileUsage);
 }
 
 void CTMProcessScreen::UpdateProcessMapWithoutProcessHandle(DWORD processId, const std::string& processName,
@@ -319,34 +339,44 @@ void CTMProcessScreen::UpdateProcessMapWithoutProcessHandle(DWORD processId, con
      * The process cant be opened, we will use some undocumented, non backwards compatibility stuff. THIS IS THE ONLY WAY
      */
     //Memory Usage
-    DOUBLE memUsage = (processInformation->WorkingSetPrivateSize.QuadPart / (1024.0 * 1024.0));
+    double memUsage = (processInformation->WorkingSetPrivateSize.QuadPart / (1024.0 * 1024.0));
 
     //Network Usage
-    DOUBLE networkUsage = 0;
-    auto it = globalProcessNetworkUsageMap.find(processId);
-    if(it != globalProcessNetworkUsageMap.end())
+    double networkUsage = 0;
+    auto   networkIt    = globalProcessNetworkUsageMap.find(processId);
+    if(networkIt != globalProcessNetworkUsageMap.end())
     {
-        //Set it to 0 as soon as you use it, that will mark the data per second
-        networkUsage = (it->second / (1024.0 * 1024.0));
-        it->second   = 0;
+        //Set networkIt to 0 as soon as you use networkIt, that will mark the data per second
+        networkUsage = (networkIt->second / (1024.0 * 1024.0));
+        networkIt->second   = 0;
+    }
+    
+    //File Usage
+    double fileUsage = 0;
+    auto   fileIt    = globalProcessFileUsageMap.find(processId);
+    if(fileIt != globalProcessFileUsageMap.end())
+    {
+        //Set fileIt to 0 as soon as you use fileIt, that will mark the data per second
+        fileUsage  = (fileIt->second / (1024.0 * 1024.0));
+        fileIt->second = 0;
     }
 
     //CPU Usage
-    DOUBLE cpuUsage = CalculateCpuUsageDelta(processId, ftSysKernel, ftSysUser,
+    double cpuUsage = CalculateCpuUsageDelta(processId, ftSysKernel, ftSysUser,
                             processInformation->KernelTime, processInformation->UserTime);
 
-    UpdateProcessMap(processId, processName, memUsage, cpuUsage, networkUsage);
+    UpdateProcessMap(processId, processName, memUsage, cpuUsage, networkUsage, fileUsage);
 }
 
 void CTMProcessScreen::UpdateProcessMap(DWORD processId, const std::string& processName,
-                        double memUsage, double cpuUsage, double networkUsage)
+                        double memUsage, double cpuUsage, double networkUsage, double fileUsage)
 {
     //Get the process if it exists. If it doesn't exist, it will auto create it for us
     auto& processVector = groupedProcessesMap[processName];
 
     //If the processVector is empty that means its an entirely new process entry
     if(processVector.empty())
-        processVector.emplace_back(processId, memUsage, cpuUsage, networkUsage);
+        processVector.emplace_back(processId, memUsage, cpuUsage, networkUsage, fileUsage);
     
     //If the processVector is not empty, that means it may or may not exist beforehand
     else
@@ -362,11 +392,12 @@ void CTMProcessScreen::UpdateProcessMap(DWORD processId, const std::string& proc
             it->cpuUsage     = cpuUsage;
             it->memoryUsage  = memUsage;
             it->networkUsage = networkUsage;
+            it->fileUsage    = fileUsage;
             it->isStaleEntry = FALSE;
         }
         //The element does not exist, its a new one under this category
         else
-            processVector.emplace_back(processId, memUsage, cpuUsage, networkUsage);
+            processVector.emplace_back(processId, memUsage, cpuUsage, networkUsage, fileUsage);
     }
 }
 
@@ -414,6 +445,7 @@ void CTMProcessScreen::RemoveStaleEntries()
                                 //Remove the entry from other maps using key
                                 DWORD processIdToRemove = child.processId;
                                 globalProcessNetworkUsageMap.erase(processIdToRemove);
+                                globalProcessFileUsageMap.erase(processIdToRemove);
                                 perProcessPreviousInformationMap.erase(processIdToRemove);
                                 
                                 //For processIdToHandleMap, we need to 'CloseHandle' before erasing the entry IF it exists in the map
@@ -501,5 +533,5 @@ double CTMProcessScreen::CalculateCpuUsageDelta(DWORD processId, FILETIME ftSysK
     previousCpuTimeInfo.prevProcUserTime   = reinterpret_cast<FILETIME&>(procUser);
 
     //Final CPU Usage
-    return (((DOUBLE)procTimeDelta) / ((DOUBLE)sysTimeDelta)) * 100.0;
+    return (((double)procTimeDelta) / ((double)sysTimeDelta)) * 100.0;
 }

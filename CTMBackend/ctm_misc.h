@@ -1,13 +1,17 @@
+/*
+ * I did not want to clutter main.cpp file, hence i created this file.
+ * This just stores all the functions / classes / defines which were once written in main.cpp and will further be written.
+ */
 #ifndef CTM_MISCELLANEOUS_HPP
 #define CTM_MISCELLANEOUS_HPP
 
-/*
- * I did not want to clutter main.cpp file, hence i created this file.
- * This just stores all the functions / classes which were once written in main.cpp and will further be written.
- */
-
 #include <windows.h>
 #include <iostream> //For debugging
+
+//Moved this define from 'ctm_constants.h'
+//Mutex constant (Not the most secure way to do it but for now lets do it like this).
+//Also added a uuid at the end to sort of make it unique????? i have no idea how these work. (Generated using python uuid)
+#define CTM_APP_MUTEX_NAME L"Global\\CTMImGui_App_Single_Instance_Mutex_88bac14c-67fe-44e9-a29a-071b22a95104"
 
 //MutexGuard needed to clean up the mutex automatically
 class MutexGuard
@@ -178,7 +182,7 @@ bool TerminateAndAcquireMutexOwnership(HWND hWnd, HANDLE hMutex)
     std::cout << "Hung process successfully terminated, trying to gain access to mutex ownership.";
 
     //Try to acquire ownership of the mutex
-    DWORD waitResult = WaitForSingleObject(hMutex, 500);
+    DWORD waitResult = WaitForSingleObject(hMutex, 2500);
 
     if (waitResult == WAIT_OBJECT_0)
     {

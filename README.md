@@ -1,13 +1,21 @@
 # Custom Task Manager (CTM)
 
-### I am making this application to sort of try to mimic Windows 'Task Manager'. It uses ImGui to render all the content of CTM.
+### I am making this application to sort of try to mimic Windows 'Task Manager'. It uses ImGui to render all the content of CTM (Both the Client and the Non-Client Region).
 
-## Quick Notice
-#### If you are trying to run this app and you have an Antivirus which checks the app before running it, this may bug out a little bit before it runs fine. Atleast it bugged out on my Avast Antivirus.
+# !!! Important !!!
+- Incase the app crashes unexpectedly, chances are the ETW listener may not have closed properly. Go to `cmd` and run the command:
+  ```bash
+  logman query -ets
+  ```
+  - Notice the `Data Collector Set` column. If you see something named as `CTM_ProcessScreen_ETWSession`, run this command to manually close the session:
+    ```bash
+    logman stop CTM_ProcessScreen_ETWSession -ets
+    ```
+- If you are trying to run this app and you have an Antivirus which checks the app before running it, this may bug out a little bit before it runs fine. Atleast it bugged out on my Avast Antivirus.
 
 ## Features
-- Single instance app: Only one instance of application is allowed at a time throughout system. If the main instance is hung, then it will be terminated and a new instance will be opened.
-- Monitoring processes: Provides info such as ProcessID, CPU usage, Memory Usage, and Disk Usage.
+- **Single instance app**: Only one instance of application is allowed at a time throughout system. If you try to open a new instance while the main instance is hung, then the main instance will be terminated and a new instance will be opened.
+- **Monitoring processes**: Provides info such as ProcessID, CPU usage, Memory Usage, Network Usage and File Usage.
 
 ## Requirements
 - C++17 or later (for the build system)
