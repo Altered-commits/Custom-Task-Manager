@@ -1,5 +1,4 @@
 #include "ctm_app.h"
-#include <dwmapi.h>
 
 CTMApp::~CTMApp()
 {
@@ -15,8 +14,10 @@ CTMApp::~CTMApp()
 
 CTMAppErrorCodes CTMApp::Initialize()
 {
+    //Needed in order for the content to not be blurry and stuff (Properly scale content on high res monitors)
     ImGui_ImplWin32_EnableDpiAwareness();
 
+    //Create the OS window
     InitializeMainWindow();
     
     //Initialize Direct3D
@@ -24,25 +25,24 @@ CTMAppErrorCodes CTMApp::Initialize()
     {
         CleanupDeviceD3D();
         ::UnregisterClassW(wc.lpszClassName, wc.hInstance);
-        return CTMAppErrorCodes::D3D_CREATION_FAILED;
+        return CTMAppErrorCodes::D3DCreationFailed;
     }
 
     //Show the window and update it
     ::ShowWindow(windowHandle, SW_SHOWDEFAULT);
     ::UpdateWindow(windowHandle);
 
-    //Initialize ImGui
-    SetupImGui();
-
     //For Windows 11 as it has rounded corners, it sort of doesn't match my apps theme of pixelated stuff
     TryRemoveWindowsRoundedCorners();
-    
-    //Initialize ImGui fonts
-    ImGuiIO& io = ImGui::GetIO();
-    pressStartFont = io.Fonts->AddFontFromFileTTF(FONT_PRESS_START_PATH, 16.0f);
-    if(!pressStartFont) return CTMAppErrorCodes::IMGUI_FONT_INIT_FAILED;
 
-    return CTMAppErrorCodes::INIT_SUCCESS;
+    //Initialize ImGui
+    SetupImGui();
+    
+    //The only error it returns is, when the font initialization failed
+    if(!SetupCTMSettings())
+        return CTMAppErrorCodes::ImGuiFontInitFailed;
+
+    return CTMAppErrorCodes::InitSuccess;
 }
 
 void CTMApp::Run()
@@ -71,7 +71,7 @@ void CTMApp::Run()
 void CTMApp::RenderFrameContent()
 {
     //First things first, reset the NC button hover state
-    NCRegionButtonState = CTMAppNCButtonState::NO_BUTTON_HOVERED;
+    NCRegionButtonState = CTMAppNCButtonState::NoButtonHovered;
     
     RECT windowRect;
     GetClientRect(windowHandle, &windowRect);
@@ -96,8 +96,8 @@ void CTMApp::RenderFrameContent()
         {
             //Title
             ImVec2 titleSize = ImGui::CalcTextSize(NCRegionAppTitle);
-            float  titleX    = (windowSize.x - titleSize.x) / 2.0f;
-            float  titleY    = (NCREGION_HEIGHT - titleSize.y) / 2.0f;
+            float  titleX    = (windowSize.x - titleSize.x) * 0.5f;
+            float  titleY    = (NCREGION_HEIGHT - titleSize.y) * 0.5f;
 
             ImGui::SetCursorPos(ImVec2(titleX, titleY)); //Vertically and Horizontally center text in NC region
             ImGui::Text("%s", NCRegionAppTitle);
@@ -112,15 +112,15 @@ void CTMApp::RenderFrameContent()
             
             //Close button
             RenderNCRegionButton(crossButton, NCRegionButtonSize, crossButtonPos, ImVec4(0.8f, 0.2f, 0.2f, 0.8f),
-                                ImVec4(1.0f, 0.0f, 0.0f, 1.0f), CTMAppNCButtonState::CLOSE_BUTTON_HOVERED);
+                                ImVec4(1.0f, 0.0f, 0.0f, 1.0f), CTMAppNCButtonState::CloseButtonHovered);
 
             //Maximize button
             RenderNCRegionButton(maximizeButton, NCRegionButtonSize, maximizeButtonPos, ImVec4(0.7f, 0.7f, 0.7f, 0.8f),
-                                ImVec4(0.5f, 0.5f, 0.5f, 1.0f), CTMAppNCButtonState::MAXIMIZE_BUTTON_HOVERED);
+                                ImVec4(0.5f, 0.5f, 0.5f, 1.0f), CTMAppNCButtonState::MaximizeButtonHovered);
 
             //Minimize button
             RenderNCRegionButton(minimizeButton, NCRegionButtonSize, minimizeButtonPos, ImVec4(0.7f, 0.7f, 0.7f, 0.8f),
-                                ImVec4(0.5f, 0.5f, 0.5f, 1.0f), CTMAppNCButtonState::MINIMIZE_BUTTON_HOVERED);
+                                ImVec4(0.5f, 0.5f, 0.5f, 1.0f), CTMAppNCButtonState::MinimizeButtonHovered);
         }
         ImGui::EndChild();
 
@@ -248,6 +248,24 @@ void CTMApp::SetupImGui()
     //Setup Platform/Renderer backends
     ImGui_ImplWin32_Init(windowHandle);
     ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
+}
+
+bool CTMApp::SetupCTMSettings()
+{
+    //Get the font manager instance once
+    CTMStateManager& stateManager = CTMStateManager::getInstance();
+
+    //Initialize ImGui fonts
+    bool allFontsLoaded = stateManager.AddFont(FONT_PRESS_START_PATH, 16.0f);
+    if(!allFontsLoaded)
+        return false;
+    
+    pressStartFont = stateManager.GetFont(0);
+
+    //Initialize rest of the settings
+    stateManager.ApplySettings();
+
+    return true;
 }
 
 bool CTMApp::IsWindowMaximized(HWND hWnd)
@@ -440,13 +458,13 @@ LRESULT WINAPI CTMApp::HandleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
             //Test for NC region buttons
             switch(NCRegionButtonState)
             {
-                case CTMAppNCButtonState::CLOSE_BUTTON_HOVERED:
+                case CTMAppNCButtonState::CloseButtonHovered:
                     return HTCLOSE;
                 
-                case CTMAppNCButtonState::MAXIMIZE_BUTTON_HOVERED:
+                case CTMAppNCButtonState::MaximizeButtonHovered:
                     return HTMAXBUTTON;
                 
-                case CTMAppNCButtonState::MINIMIZE_BUTTON_HOVERED:
+                case CTMAppNCButtonState::MinimizeButtonHovered:
                     return HTMINBUTTON;
             }
 
@@ -489,18 +507,18 @@ LRESULT WINAPI CTMApp::HandleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
             //If the NC button is getting clicked, it must be hovered as well
             switch(NCRegionButtonState)
             {
-                case CTMAppNCButtonState::CLOSE_BUTTON_HOVERED:
+                case CTMAppNCButtonState::CloseButtonHovered:
                 {
                     done = true;
                     PostQuitMessage(0);
                     return 0;
                 }
-                case CTMAppNCButtonState::MAXIMIZE_BUTTON_HOVERED:
+                case CTMAppNCButtonState::MaximizeButtonHovered:
                 {
                     ShowWindow(hWnd, isMainWindowMaximized ? SW_NORMAL : SW_MAXIMIZE);
                     return 0;
                 }
-                case CTMAppNCButtonState::MINIMIZE_BUTTON_HOVERED:
+                case CTMAppNCButtonState::MinimizeButtonHovered:
                 {
                     ShowWindow(hWnd, SW_MINIMIZE);
                     return 0;

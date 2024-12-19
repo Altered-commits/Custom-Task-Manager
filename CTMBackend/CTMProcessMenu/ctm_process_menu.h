@@ -118,7 +118,7 @@ struct PreviousUpdateInformation
     FILETIME prevProcUserTime;
 };
 
-//'using' makes my life much easier instead of writing this horrendously long type everywhere
+//'using' makes my life much easier instead of writing this horrendously long classes everywhere
 using ProcessMap                = std::unordered_map<std::string, std::vector<ProcessInfo>>;
 using ProcessHandleMap          = std::unordered_map<DWORD, HANDLE>;
 using ProcessExcludedHandleSet  = std::unordered_set<DWORD>;

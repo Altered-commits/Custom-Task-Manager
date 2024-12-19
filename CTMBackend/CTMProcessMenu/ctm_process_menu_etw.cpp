@@ -174,7 +174,7 @@ void CTMProcessScreenEventTracing::WritePropInfoToMap(PEVENT_RECORD eventRecord,
 
         switch (eventType)
         {
-            case HandlePropertyForEventType::KERNEL_NETWORK_TCPUDP:
+            case HandlePropertyForEventType::KernelNetworkTcpUdp:
             {
                 //Both TCP and UDP have properties named 'PID' and 'size'.
                 //'PID' is process id and 'size' is the packet size sent over network
@@ -193,7 +193,7 @@ void CTMProcessScreenEventTracing::WritePropInfoToMap(PEVENT_RECORD eventRecord,
             }
             break;
 
-            case HandlePropertyForEventType::KERNEL_FILE_RW:
+            case HandlePropertyForEventType::KernelFileRW:
             {
                 if(wcscmp(propNameW, L"IOSize") == 0)
                 {
@@ -212,10 +212,10 @@ void CTMProcessScreenEventTracing::WritePropInfoToMap(PEVENT_RECORD eventRecord,
     //Finally write the property information to the desired map
     switch(eventType)
     {
-        case HandlePropertyForEventType::KERNEL_NETWORK_TCPUDP:
+        case HandlePropertyForEventType::KernelNetworkTcpUdp:
             globalProcessNetworkUsageMap[processId] += processUsage;
             break;
-        case HandlePropertyForEventType::KERNEL_FILE_RW:
+        case HandlePropertyForEventType::KernelFileRW:
             globalProcessFileUsageMap[processId] += processUsage;
             break;
     }
@@ -243,7 +243,7 @@ void WINAPI CTMProcessScreenEventTracing::EventCallback(PEVENT_RECORD eventRecor
             //UDPIPDatareceivedoverUDPprotocol
             case 43: // IPv4
             case 59: // IPv6
-                WritePropInfoToMap(eventRecord, HandlePropertyForEventType::KERNEL_NETWORK_TCPUDP);
+                WritePropInfoToMap(eventRecord, HandlePropertyForEventType::KernelNetworkTcpUdp);
                 break;
         }
     }
@@ -256,7 +256,7 @@ void WINAPI CTMProcessScreenEventTracing::EventCallback(PEVENT_RECORD eventRecor
             case 15:
             //Write
             case 16:
-                WritePropInfoToMap(eventRecord, HandlePropertyForEventType::KERNEL_FILE_RW);
+                WritePropInfoToMap(eventRecord, HandlePropertyForEventType::KernelFileRW);
                 break;
         }
     }

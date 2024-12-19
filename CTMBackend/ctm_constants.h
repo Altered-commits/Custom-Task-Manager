@@ -2,7 +2,8 @@
 #define CTM_FILE_PATHS_HPP
 
 //All the stuff which user can tinker with
-//Ofc nothings stopping you from changing the other files but if you don't know what you are doing, just change these files only
+//Ofc nothings stopping you from changing the other files but-
+//-if you don't know what you are doing, just change this file only, that too only window stuff (like nc region height, window width, etc)
 
 //Window constants
 #define CTM_APP_CLASS_NAME  L"CTMImGuiApp"

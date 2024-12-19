@@ -8,10 +8,12 @@
 //My stuff
 #include "ctm_constants.h"
 #include "ctm_app_content.h"
+#include "ctm_state_manager.h"
 //Windows stuff
 #include <d3d11.h>
 #include <windowsx.h>
-//Std lib stuff
+#include <dwmapi.h>
+//Stdlib stuff
 #include <iostream> //For debugging purposes
 
 //Forward declare as told by imgui_impl_win32.cpp
@@ -20,17 +22,17 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 //App error codes
 enum class CTMAppErrorCodes
 {
-    D3D_CREATION_FAILED,
-    IMGUI_FONT_INIT_FAILED,
-    INIT_SUCCESS,
+    D3DCreationFailed,
+    ImGuiFontInitFailed,
+    InitSuccess,
 };
 
 enum class CTMAppNCButtonState
 {
-    NO_BUTTON_HOVERED,
-    CLOSE_BUTTON_HOVERED,
-    MAXIMIZE_BUTTON_HOVERED,
-    MINIMIZE_BUTTON_HOVERED
+    NoButtonHovered,
+    CloseButtonHovered,
+    MaximizeButtonHovered,
+    MinimizeButtonHovered
 };
 
 class CTMApp {
@@ -64,7 +66,7 @@ class CTMApp {
         //NC Region variables
         const char*         NCRegionAppTitle    = "Walmart Task Manager";
         ImVec2              NCRegionButtonSize  = {NCREGION_HEIGHT, NCREGION_HEIGHT};
-        CTMAppNCButtonState NCRegionButtonState = CTMAppNCButtonState::NO_BUTTON_HOVERED;
+        CTMAppNCButtonState NCRegionButtonState = CTMAppNCButtonState::NoButtonHovered;
     
     private: //CTM Content variables
         CTMAppContent appContent;
@@ -79,6 +81,7 @@ class CTMApp {
     private: //Window Helper functions
         void InitializeMainWindow();
         void SetupImGui();
+        bool SetupCTMSettings();
         bool IsWindowMaximized(HWND);
         bool IsWindows10OrGreater();
         void TryRemoveWindowsRoundedCorners();

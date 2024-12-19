@@ -90,7 +90,7 @@ int main(void)
     CTMApp app;
     CTMAppErrorCodes code = app.Initialize();
 
-    if(code != CTMAppErrorCodes::INIT_SUCCESS) {
+    if(code != CTMAppErrorCodes::InitSuccess) {
         std::cerr << "Failed to intialize custom task manager. Error code: " << static_cast<int>(code) << '\n';
         //Failed to launch the app, MutexGuard automatically releases mutex due to RAII
         return 1;

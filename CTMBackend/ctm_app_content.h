@@ -5,15 +5,17 @@
 #include "../ImGUI/imgui.h"
 //My stuff
 #include "ctm_constants.h"
+#include "ctm_state_manager.h"
 #include "CTMProcessMenu/ctm_process_menu.h"
-//Std lib stuff
+#include "CTMSettingsMenu/ctm_settings_menu.h"
+//Stdlib stuff
 #include <functional>
 #include <memory>
 
 class CTMAppContent
 {
     public:
-        CTMAppContent()  = default;
+        CTMAppContent();
         ~CTMAppContent() = default;
 
         //No need for copy or move operations
@@ -35,7 +37,8 @@ class CTMAppContent
 
     private: //Variables
         std::unique_ptr<CTMBaseState> currentScreen;
-        CTMScreenState currentScreenState = CTMScreenState::NONE;
+        //Load this value from settings in constructor
+        CTMScreenState currentScreenState = CTMScreenState::None;
 };
 
 

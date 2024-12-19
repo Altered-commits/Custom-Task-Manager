@@ -1,34 +1,45 @@
 #include "ctm_app_content.h"
 
-//Screen state functions
+CTMAppContent::CTMAppContent()
+{
+    //Initialize a default screen on startup
+    switchScreen(static_cast<CTMScreenState>(
+        CTMStateManager::getInstance().getSetting(CTMSettingKey::ScreenState, static_cast<int>(CTMScreenState::Settings))
+    ));
+}
+
+//--------------------SCREEN STATE SWITCHER--------------------
 void CTMAppContent::switchScreen(CTMScreenState newState)
 {
     //Same screen, no need to change it
     if (currentScreenState == newState)
         return;
-    
-    //Remove the current screen
-    currentScreen.reset();
 
     //Prepare to change to new screen
     currentScreenState = newState;
 
     switch (newState)
     {
-        case CTMScreenState::PROCESSES:
+        case CTMScreenState::Processes:
             currentScreen = std::make_unique<CTMProcessScreen>();
             break;
 
-        case CTMScreenState::APPS:
-        case CTMScreenState::SERVICES:
-        case CTMScreenState::SETTINGS:
+        case CTMScreenState::Apps:
+        case CTMScreenState::Services:
+            currentScreen = nullptr;
+            break;
+
+        case CTMScreenState::Settings:
+            currentScreen = std::make_unique<CTMSettingsMenu>();
+            break;
+
         default:
             currentScreen = nullptr;
             break;
     }
 }
 
-//Render functions
+//--------------------RENDER FUNCTIONS  --------------------
 void CTMAppContent::RenderSidebarButton(const char* buttonLabel, const char* fullLabel, const ImVec2& buttonSize, const ImVec4& hoveredColor,
                                         const ImVec4& activeColor, std::function<void(void)> onClick)
 {
@@ -63,18 +74,16 @@ void CTMAppContent::RenderSidebar(const ImVec2& contentRegion)
         ImVec2 sidebarButtonSize = {CREGION_SIDEBAR_WIDTH, CREGION_SIDEBAR_WIDTH};
         //Taskbar content menus
         RenderSidebarButton("Proc", "Processes", sidebarButtonSize,
-                            ImVec4(0.3f, 0.6f, 0.8f, 1.0f), ImVec4(0.2f, 0.4f, 0.6f, 1.0f), [this](){ switchScreen(CTMScreenState::PROCESSES); });
+                            ImVec4(0.3f, 0.6f, 0.8f, 1.0f), ImVec4(0.2f, 0.4f, 0.6f, 1.0f), [this](){ switchScreen(CTMScreenState::Processes); });
         RenderSidebarButton("Apps", "Applications", sidebarButtonSize,
-                            ImVec4(0.4f, 0.7f, 0.3f, 1.0f), ImVec4(0.3f, 0.5f, 0.2f, 1.0f), [this](){ switchScreen(CTMScreenState::APPS); });
+                            ImVec4(0.4f, 0.7f, 0.3f, 1.0f), ImVec4(0.3f, 0.5f, 0.2f, 1.0f), [this](){ switchScreen(CTMScreenState::Apps); });
         RenderSidebarButton("Srvc", "Services", sidebarButtonSize,
-                            ImVec4(0.9f, 0.7f, 0.2f, 1.0f), ImVec4(0.7f, 0.5f, 0.1f, 1.0f), [this](){ switchScreen(CTMScreenState::SERVICES); });
+                            ImVec4(0.9f, 0.7f, 0.2f, 1.0f), ImVec4(0.7f, 0.5f, 0.1f, 1.0f), [this](){ switchScreen(CTMScreenState::Services); });
 
         //Taskbar settings menu
         ImGui::SetCursorPos({0, contentRegion.y - CREGION_SIDEBAR_WIDTH});
-        RenderSidebarButton("Stgs", "Settings", sidebarButtonSize, ImVec4(0.4f, 0.4f, 0.8f, 1.0f), ImVec4(0.3f, 0.3f, 0.6f, 1.0f),
-                            [this](){
-                               currentScreenState = CTMScreenState::SETTINGS; 
-                            });
+        RenderSidebarButton("Stgs", "Settings", sidebarButtonSize,
+                            ImVec4(0.4f, 0.4f, 0.8f, 1.0f), ImVec4(0.3f, 0.3f, 0.6f, 1.0f), [this](){ switchScreen(CTMScreenState::Settings); });
         
     }
     ImGui::EndChild();

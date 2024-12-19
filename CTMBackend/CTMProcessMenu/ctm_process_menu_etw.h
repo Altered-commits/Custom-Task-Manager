@@ -28,8 +28,8 @@ extern ProcessResourceUsageMap globalProcessFileUsageMap;
 //To differentiate between different GUID's properties, like Kernel Network has different properties (TCP and UDP), etc.
 enum class HandlePropertyForEventType
 {
-    KERNEL_NETWORK_TCPUDP,
-    KERNEL_FILE_RW
+    KernelNetworkTcpUdp,
+    KernelFileRW
 };
 
 class CTMProcessScreenEventTracing

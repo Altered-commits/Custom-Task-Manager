@@ -6,11 +6,11 @@
 
 enum class CTMScreenState
 {
-    PROCESSES,
-    APPS,
-    SERVICES,
-    SETTINGS,
-    NONE
+    Processes,
+    Apps,
+    Services,
+    Settings,
+    None
 };
 
 class CTMBaseState
