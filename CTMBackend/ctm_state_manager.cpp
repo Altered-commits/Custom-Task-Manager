@@ -11,6 +11,17 @@ CTMStateManager::~CTMStateManager()
     SaveSettings();
 }
 
+//--------------------WND HANDLE MANAGER--------------------
+void CTMStateManager::SetWindowHandle(HWND externalWndHandle)
+{
+    windowHandle = externalWndHandle;
+}
+
+HWND CTMStateManager::GetWindowHandle()
+{
+    return windowHandle;
+}
+
 //--------------------FONT MANAGER--------------------
 bool CTMStateManager::AddFont(const char *fontPath, float fontSize)
 {
@@ -30,29 +41,6 @@ ImFont *CTMStateManager::GetFont(size_t index)
     if(index < fonts.size())
         return fonts[index];
     return nullptr;
-}
-
-//--------------------SETTINGS MANAGER--------------------
-void CTMStateManager::ApplySettings()
-{
-    //Apply all settings to the app beforehand (strictly after init of ImGui)
-    ApplyDisplayTheme(getSetting(CTMSettingKey::DisplayTheme, 0));
-}
-
-void CTMStateManager::ApplyDisplayTheme(int themeIndex)
-{
-    switch (themeIndex)
-    {
-        case 0:
-            ImGui::StyleColorsDark();
-            break;
-        case 1:
-            ImGui::StyleColorsLight();
-            break;
-        case 2:
-            ImGui::StyleColorsClassic();
-            break;
-    }
 }
 
 //--------------------SETTINGS MANAGER HELPER FUNCTIONS--------------------

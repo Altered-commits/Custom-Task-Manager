@@ -4,8 +4,12 @@
 CTMSettingsMenu::CTMSettingsMenu()
 {
     //Get the values saved in settings (if the settings ini exists)
-    currentThemeIndex = stateManager.getSetting(CTMSettingKey::DisplayTheme, 0);
-    currentPageIndex  = stateManager.getSetting(CTMSettingKey::ScreenState, 3);
+    //Display Settings
+    currentThemeIndex  = stateManager.getSetting(CTMSettingKey::DisplayTheme, 0);
+    currentDisplayMode = stateManager.getSetting(CTMSettingKey::DisplayMode, 0);
+    //Page Settings
+    currentPageIndex   = stateManager.getSetting(CTMSettingKey::ScreenState, static_cast<int>(CTMScreenState::Settings));
+
     SetInitialized(true);
 }
 
@@ -13,8 +17,12 @@ CTMSettingsMenu::CTMSettingsMenu()
 CTMSettingsMenu::~CTMSettingsMenu()
 {
     //Save all the settings before exiting this menu
+    //Display Settings
     stateManager.setSetting(CTMSettingKey::DisplayTheme, currentThemeIndex);
+    stateManager.setSetting(CTMSettingKey::DisplayMode, currentDisplayMode);
+    //Page Settings
     stateManager.setSetting(CTMSettingKey::ScreenState, currentPageIndex);
+
     SetInitialized(false);
 }
 
@@ -25,17 +33,17 @@ void CTMSettingsMenu::OnRender()
     ImVec2 screenPadding = ImGui::GetStyle().WindowPadding;
     
     //Section 1: Theme
-    RenderSectionTitle("Theme Settings", screenSize);
-    ImGui::Spacing();
-    RenderComboBox("Display Theme", "##ThemeDropdown", themes, IM_ARRAYSIZE(themes), currentThemeIndex, screenSize,
-                    comboBoxWidth, screenPadding.x, [this](int themeIndex){ stateManager.ApplyDisplayTheme(themeIndex); });
+    RenderSectionTitle("Default Display Settings", screenSize);
+    RenderComboBox("Display Theme", "##DefaultThemeDropdown", themes, IM_ARRAYSIZE(themes), currentThemeIndex, screenSize,
+                    comboBoxWidth, screenPadding.x, ApplyDisplayThemeSetting);
+    RenderComboBox("Display Mode", "##DefaultDisplayMode", dispModes, IM_ARRAYSIZE(dispModes), currentDisplayMode, screenSize,
+                    comboBoxWidth, screenPadding.x, ApplyDisplayModeSetting);
     
     //Bit of spacing between above section and below section
-    ImGui::Dummy({0, 10.0f});
+    ImGui::Dummy({0, 20.0f});
     //Section 2: Page settings
-    RenderSectionTitle("Page Settings", screenSize);
-    ImGui::Spacing();
-    RenderComboBox("Default startup page", "##DefaultStartupPage", pages, IM_ARRAYSIZE(pages), currentPageIndex, screenSize,
+    RenderSectionTitle("Default Page Settings", screenSize);
+    RenderComboBox("Startup Page", "##DefaultStartupPage", pages, IM_ARRAYSIZE(pages), currentPageIndex, screenSize,
                     comboBoxWidth, screenPadding.x);
 }
 
@@ -52,7 +60,7 @@ void CTMSettingsMenu::RenderSectionTitle(const char* sectionTitle, ImVec2& scree
 }
 
 void CTMSettingsMenu::RenderComboBox(const char* text, const char* label, const char** items, int itemCount, int& currentIndex,
-        const ImVec2& screenSize, float comboBoxWidth, float comboBoxPadding, ComboBoxOnChangeFuncPtr onChange = nullptr)
+        const ImVec2& screenSize, float comboBoxWidth, float comboBoxPadding, ComboBoxOnChangeFuncPtr onChange)
 {
     //Calculate the X position to align the combo box to the right
     float comboBoxXPos = screenSize.x - comboBoxWidth - comboBoxPadding;
@@ -83,4 +91,37 @@ void CTMSettingsMenu::RenderComboBox(const char* text, const char* label, const 
         ImGui::EndCombo();
     }
     ImGui::PopItemWidth();
+}
+
+//--------------------STATIC FUNCTIONS--------------------
+void CTMSettingsMenu::ApplyDisplaySettings()
+{
+    //Get the State Manager again because this is static function, can't access the one inside the class cuz it ain't static
+    CTMStateManager& stateManager = CTMStateManager::getInstance();
+    //We only set Display Settings, Page Settings are handled by 'CTMAppContent' class itself in its constructor
+    ApplyDisplayThemeSetting(stateManager.getSetting(CTMSettingKey::DisplayTheme, 2));
+    ApplyDisplayModeSetting(stateManager.getSetting(CTMSettingKey::DisplayMode, 0));
+}
+
+void CTMSettingsMenu::ApplyDisplayThemeSetting(int themeMode)
+{
+    switch (themeMode)
+    {
+        case 0:
+            ImGui::StyleColorsDark();
+            break;
+        case 1:
+            ImGui::StyleColorsLight();
+            break;
+        case 2:
+            ImGui::StyleColorsClassic();
+            break;
+    }
+}
+
+void CTMSettingsMenu::ApplyDisplayModeSetting(int displayMode)
+{
+    //Get HWND from State Manager. We set it in [ctm_app.cpp -> 'SetupCTMSettings()']
+    //According to display mode (0 -> Normal, 1 -> Maximize)
+    ShowWindow(CTMStateManager::getInstance().GetWindowHandle(), displayMode == 0 ? SW_NORMAL : SW_MAXIMIZE);
 }

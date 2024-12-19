@@ -47,8 +47,6 @@ CTMAppErrorCodes CTMApp::Initialize()
 
 void CTMApp::Run()
 {
-    ImGuiIO& io = ImGui::GetIO();
-    
     while (!done)
     {
         HandleMessages();
@@ -62,7 +60,7 @@ void CTMApp::Run()
         
         HandleResizing();
 
-        RenderFrame(io);
+        RenderFrame();
         PresentFrame();
     }
 }
@@ -133,7 +131,7 @@ void CTMApp::RenderFrameContent()
     ImGui::PopFont();
 }
 
-void CTMApp::RenderFrame(ImGuiIO& io)
+void CTMApp::RenderFrame()
 {
     // Start the Dear ImGui frame
     ImGui_ImplDX11_NewFrame();
@@ -242,9 +240,6 @@ void CTMApp::SetupImGui()
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
 
-    //Setup Dear ImGui style
-    ImGui::StyleColorsDark();
-
     //Setup Platform/Renderer backends
     ImGui_ImplWin32_Init(windowHandle);
     ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
@@ -255,6 +250,9 @@ bool CTMApp::SetupCTMSettings()
     //Get the font manager instance once
     CTMStateManager& stateManager = CTMStateManager::getInstance();
 
+    //Store the windowHandle in our State Manager, its sort of reliable, atleast for me
+    stateManager.SetWindowHandle(windowHandle);
+
     //Initialize ImGui fonts
     bool allFontsLoaded = stateManager.AddFont(FONT_PRESS_START_PATH, 16.0f);
     if(!allFontsLoaded)
@@ -262,8 +260,9 @@ bool CTMApp::SetupCTMSettings()
     
     pressStartFont = stateManager.GetFont(0);
 
-    //Initialize rest of the settings
-    stateManager.ApplySettings();
+    //Initialize rest of the settings FOR THIS CLASS using settings class
+    //Other classes will use their own methods to initialize their own stuff
+    CTMSettingsMenu::ApplyDisplaySettings();
 
     return true;
 }
@@ -372,24 +371,26 @@ void CTMApp::CleanupRenderTarget()
 //----------Window message handlers----------
 LRESULT WINAPI CTMApp::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    //Specify the window size constraints (minimum window size constraints to be exact)
-    if(msg == WM_GETMINMAXINFO)
+    switch(msg)
     {
-        MINMAXINFO* windowSizeInfo = reinterpret_cast<MINMAXINFO*>(lParam);
+        //Specify the window size constraints (minimum window size constraints to be exact)
+        case WM_GETMINMAXINFO:
+        {
+            MINMAXINFO* windowSizeInfo = reinterpret_cast<MINMAXINFO*>(lParam);
 
-        windowSizeInfo->ptMinTrackSize.x = CTM_APP_WINDOW_MIN_WIDTH;
-        windowSizeInfo->ptMinTrackSize.y = CTM_APP_WINDOW_MIN_HEIGHT;
+            windowSizeInfo->ptMinTrackSize.x = CTM_APP_WINDOW_MIN_WIDTH;
+            windowSizeInfo->ptMinTrackSize.y = CTM_APP_WINDOW_MIN_HEIGHT;
 
-        return 0; //This indicates that the message has been handled
-    }
-
-    //Access the 'this' pointer which we passed during CreateWindowW (the last argument)
-    if(msg == WM_NCCREATE)
-    {
-        CREATESTRUCTW* csw = reinterpret_cast<CREATESTRUCTW*>(lParam);
-        //Contains 'this' pointer, set it as GWLP_USERDATA
-        ::SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(csw->lpCreateParams));
-        return DefWindowProcW(hWnd, msg, wParam, lParam);
+            return 0; //This indicates that the message has been handled
+        }
+        //Access the 'this' pointer which we passed during CreateWindowW (the last argument)
+        case WM_NCCREATE:
+        {
+            CREATESTRUCTW* csw = reinterpret_cast<CREATESTRUCTW*>(lParam);
+            //Contains 'this' pointer, set it as GWLP_USERDATA
+            ::SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(csw->lpCreateParams));
+            return DefWindowProcW(hWnd, msg, wParam, lParam);
+        }
     }
 
     //Rest of the times, retrieve the 'this' pointer and call the actual window handler
@@ -408,7 +409,7 @@ LRESULT WINAPI CTMApp::HandleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
 
     switch (msg)
     {
-        // Handling this event allows us to extend client area into the title bar region
+        //Handling this event allows us to extend client area into the title bar region
         case WM_NCCALCSIZE:
         {
             if(!wParam) return DefWindowProcW(hWnd, msg, wParam, lParam);

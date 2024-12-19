@@ -7,6 +7,7 @@
 enum class CTMScreenState
 {
     Processes,
+    Performance,
     Apps,
     Services,
     Settings,

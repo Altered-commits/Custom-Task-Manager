@@ -26,6 +26,7 @@ void CTMAppContent::switchScreen(CTMScreenState newState)
 
         case CTMScreenState::Apps:
         case CTMScreenState::Services:
+        case CTMScreenState::Performance:
             currentScreen = nullptr;
             break;
 
@@ -75,11 +76,12 @@ void CTMAppContent::RenderSidebar(const ImVec2& contentRegion)
         //Taskbar content menus
         RenderSidebarButton("Proc", "Processes", sidebarButtonSize,
                             ImVec4(0.3f, 0.6f, 0.8f, 1.0f), ImVec4(0.2f, 0.4f, 0.6f, 1.0f), [this](){ switchScreen(CTMScreenState::Processes); });
+        RenderSidebarButton("Perf", "Performance", sidebarButtonSize,
+                            ImVec4(0.2f, 0.8f, 0.6f, 1.0f), ImVec4(0.1f, 0.6f, 0.4f, 1.0f), [this](){ switchScreen(CTMScreenState::Performance); });
         RenderSidebarButton("Apps", "Applications", sidebarButtonSize,
                             ImVec4(0.4f, 0.7f, 0.3f, 1.0f), ImVec4(0.3f, 0.5f, 0.2f, 1.0f), [this](){ switchScreen(CTMScreenState::Apps); });
         RenderSidebarButton("Srvc", "Services", sidebarButtonSize,
                             ImVec4(0.9f, 0.7f, 0.2f, 1.0f), ImVec4(0.7f, 0.5f, 0.1f, 1.0f), [this](){ switchScreen(CTMScreenState::Services); });
-
         //Taskbar settings menu
         ImGui::SetCursorPos({0, contentRegion.y - CREGION_SIDEBAR_WIDTH});
         RenderSidebarButton("Stgs", "Settings", sidebarButtonSize,

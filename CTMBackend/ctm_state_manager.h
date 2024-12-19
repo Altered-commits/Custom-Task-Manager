@@ -17,6 +17,8 @@
 #include <charconv>
 //My stuff
 #include "ctm_constants.h"
+//Windows stuff
+#include <windef.h> //HWND
 
 //So i don't make errors in getting values
 enum class CTMSettingKey
@@ -25,7 +27,8 @@ enum class CTMSettingKey
     ScreenState,
 
     //Display related settings
-    DisplayTheme
+    DisplayTheme,
+    DisplayMode
 };
 
 //Makes my life EASIER
@@ -41,6 +44,10 @@ public:
         return instance;
     }
 
+    //--------------------WND HANDLE MANAGER--------------------
+    void SetWindowHandle(HWND);
+    HWND GetWindowHandle();
+
     //--------------------FONT MANAGER--------------------
     bool    AddFont(const char* fontPath, float fontSize);
     ImFont* GetFont(size_t index);
@@ -48,9 +55,6 @@ public:
     //--------------------SETTINGS MANAGER--------------------
     template<typename T> T    getSetting(CTMSettingKey, T);
     template<typename T> void setSetting(CTMSettingKey, T);
-
-    void ApplySettings();
-    void ApplyDisplayTheme(int);
     
 private: //Settings manager helper functions
     void LoadSettings();
@@ -66,13 +70,17 @@ private: //Constructors and Destructors
     CTMStateManager(CTMStateManager&&)                 = delete;
     CTMStateManager& operator=(CTMStateManager&&)      = delete;
 
+private: //The Window Handle
+    HWND windowHandle = nullptr;
+
 private: //Font variable
     std::vector<ImFont*> fonts;
+
 private: //Settings variables
     const char* iniFileName = "CTMSettings.ini";
     SettingsMap settingsMap;
     //String repr of 'CTMSettingKey' enum, internal to this class
-    constexpr static const char* CTMSettingKeyStringRepr[] = { "CTMScreenState", "CTMDisplayTheme" };
+    constexpr static const char* CTMSettingKeyStringRepr[] = { "CTMScreenState", "CTMDisplayTheme", "CTMDisplayMode" };
 };
 
 //--------------------SETTINGS MANAGER (TEMPLATED FUNCTIONS)--------------------

@@ -52,7 +52,7 @@ class CTMApp {
     
     private: //Render functions
         void RenderFrameContent();
-        void RenderFrame(ImGuiIO&);
+        void RenderFrame();
         void RenderNCRegionButton(const char*, const ImVec2&, const ImVec2&, const ImVec4&, const ImVec4&, CTMAppNCButtonState);
         void PresentFrame();
     
