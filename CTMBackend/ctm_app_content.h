@@ -6,8 +6,9 @@
 //My stuff
 #include "ctm_constants.h"
 #include "ctm_state_manager.h"
-#include "CTMProcessMenu/ctm_process_menu.h"
-#include "CTMSettingsMenu/ctm_settings_menu.h"
+#include "CTMPerformanceScreen/ctm_perf_screen.h"
+#include "CTMProcessScreen/ctm_process_screen.h"
+#include "CTMSettingsScreen/ctm_settings_screen.h"
 //Stdlib stuff
 #include <functional>
 #include <memory>
@@ -33,12 +34,15 @@ class CTMAppContent
         void RenderCTMContent(const ImVec2&);
     
     private: //Screen state switching
-        void switchScreen(CTMScreenState);
+        void SwitchScreen(CTMScreenState);
 
-    private: //Variables
-        std::unique_ptr<CTMBaseState> currentScreen;
+    private: //Screen state variables
+        std::unique_ptr<CTMBaseScreen> currentScreen;
         //Load this value from settings in constructor
         CTMScreenState currentScreenState = CTMScreenState::None;
+    
+    private: //State Manager
+        CTMStateManager& stateManager = CTMStateManager::GetInstance();
 };
 
 

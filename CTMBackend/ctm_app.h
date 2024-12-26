@@ -19,15 +19,14 @@
 //Forward declare as told by imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-//App error codes
-enum class CTMAppErrorCodes
+enum class CTMAppErrorCodes : std::uint8_t
 {
     D3DCreationFailed,
     ImGuiFontInitFailed,
     InitSuccess,
 };
 
-enum class CTMAppNCButtonState
+enum class CTMAppNCButtonState : std::uint8_t
 {
     NoButtonHovered,
     CloseButtonHovered,
@@ -64,14 +63,15 @@ class CTMApp {
     private: //CTM variables
         bool isMainWindowMaximized = false;
         //NC Region variables
-        const char*         NCRegionAppTitle    = "Walmart Task Manager";
+        const char*         NCRegionAppTitle    = CTM_APP_WINDOW_TITLE;
         ImVec2              NCRegionButtonSize  = {NCREGION_HEIGHT, NCREGION_HEIGHT};
         CTMAppNCButtonState NCRegionButtonState = CTMAppNCButtonState::NoButtonHovered;
     
-    private: //CTM Content variables
-        CTMAppContent appContent;
+    private: //CTM variables
+        CTMAppContent    appContent;
+        CTMStateManager& stateManager = CTMStateManager::GetInstance();
 
-    private: //Font Variables
+    private: //Font Variable
         ImFont* pressStartFont = nullptr;
 
     private: //Outcast ;-;
@@ -80,7 +80,7 @@ class CTMApp {
 
     private: //Window Helper functions
         void InitializeMainWindow();
-        void SetupImGui();
+        void SetupImGuiAndPlot();
         bool SetupCTMSettings();
         bool IsWindowMaximized(HWND);
         bool IsWindows10OrGreater();

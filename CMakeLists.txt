@@ -9,15 +9,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Set the output directory for the executable to the same as main.cpp
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
 
-# Add ImGui source files
+# Add ImGui and ImPlot source files
 file(GLOB IMGUI_SOURCES "ImGUI/*.cpp")
 file(GLOB IMGUI_BACKEND_SOURCES "ImGUIBackend/*.cpp")
+file(GLOB IMPLOT_SOURCES "ImPlot/*.cpp")
 
 # Add CTMBackend source files recursively
 file(GLOB_RECURSE CTM_SOURCES "CTMBackend/*.cpp")
 
 # Add executable target
-add_executable(CTMApp main.cpp ${IMGUI_SOURCES} ${IMGUI_BACKEND_SOURCES} ${CTM_SOURCES})
+add_executable(CTMApp main.cpp ${IMGUI_SOURCES} ${IMGUI_BACKEND_SOURCES} ${IMPLOT_SOURCES} ${CTM_SOURCES})
 
 # Include directories for ImGui headers
 target_include_directories(CTMApp PRIVATE ImGUI)

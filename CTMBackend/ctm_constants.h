@@ -8,10 +8,18 @@
 //Window constants
 #define CTM_APP_CLASS_NAME  L"CTMImGuiApp"
 #define CTM_APP_WINDOW_NAME L"DirectXCTMImGuiApp"
-#define CTM_APP_WINDOW_WIDTH  (1280)
-#define CTM_APP_WINDOW_HEIGHT (720)
+
+#define CTM_APP_WINDOW_TITLE      "Task Manager"
+#define CTM_APP_WINDOW_WIDTH      (1280)
+#define CTM_APP_WINDOW_HEIGHT     (720)
 #define CTM_APP_WINDOW_MIN_WIDTH  (1200)
 #define CTM_APP_WINDOW_MIN_HEIGHT (600)
+
+//App content class
+#define CTM_APP_CONTENT_DEFAULT_WINDOW_PADDING {10, 10}
+
+//Performance screen constants
+#define CTM_PERFSCR_TITLE "Performance Screen"
 
 //EWT constants (Change these GUIDs if it doesn't work for your system)
 #define MICROSOFT_WINDOWS_KERNEL_NETWORK_GUID { 0x7DD42A49, 0x5329, 0x4832, { 0x8D, 0xFD, 0x43, 0xD9, 0x79, 0x15, 0x3A, 0x88 } }
@@ -24,6 +32,7 @@
 #define NCREGION_HEIGHT (40)
 
 //Client Region (aka the screen below title bar) sidebar width
-#define CREGION_SIDEBAR_WIDTH (70)
+#define CREGION_SIDEBAR_WIDTH         (70)
+#define CREGION_PERFSCR_SIDEBAR_WIDTH CREGION_SIDEBAR_WIDTH //Performance screen sidebar width
 
 #endif

@@ -21,7 +21,7 @@
 #include <windef.h> //HWND
 
 //So i don't make errors in getting values
-enum class CTMSettingKey
+enum class CTMSettingKey : std::uint8_t
 {
     //ScreenState is basically, which screen did u last visit before shutting down (Settings, Processes, etc)
     ScreenState,
@@ -38,15 +38,17 @@ class CTMStateManager
 {
 public:
     //Straight forward way to get a singleton instance
-    static CTMStateManager& getInstance()
+    static CTMStateManager& GetInstance()
     {
         static CTMStateManager instance;
         return instance;
     }
 
-    //--------------------WND HANDLE MANAGER--------------------
+    //--------------------MISC MANAGER--------------------
     void SetWindowHandle(HWND);
     HWND GetWindowHandle();
+    void SetIsPerfScreen(bool);
+    bool GetIsPerfScreen();
 
     //--------------------FONT MANAGER--------------------
     bool    AddFont(const char* fontPath, float fontSize);
@@ -70,8 +72,9 @@ private: //Constructors and Destructors
     CTMStateManager(CTMStateManager&&)                 = delete;
     CTMStateManager& operator=(CTMStateManager&&)      = delete;
 
-private: //The Window Handle
+private: //Misc variables
     HWND windowHandle = nullptr;
+    bool isPerfScreen = false;
 
 private: //Font variable
     std::vector<ImFont*> fonts;

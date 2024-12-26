@@ -4,6 +4,8 @@ CTMApp::~CTMApp()
 {
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplWin32_Shutdown();
+    
+    ImPlot::DestroyContext();
     ImGui::DestroyContext();
 
     CleanupDeviceD3D();
@@ -36,7 +38,7 @@ CTMAppErrorCodes CTMApp::Initialize()
     TryRemoveWindowsRoundedCorners();
 
     //Initialize ImGui
-    SetupImGui();
+    SetupImGuiAndPlot();
     
     //The only error it returns is, when the font initialization failed
     if(!SetupCTMSettings())
@@ -65,7 +67,7 @@ void CTMApp::Run()
     }
 }
 
-//----------Render Functions----------
+//----------RENDER FUNCTIONS----------
 void CTMApp::RenderFrameContent()
 {
     //First things first, reset the NC button hover state
@@ -74,30 +76,28 @@ void CTMApp::RenderFrameContent()
     RECT windowRect;
     GetClientRect(windowHandle, &windowRect);
 
-    ImVec2 windowSize = ImVec2(
-                            static_cast<float>(windowRect.right - windowRect.left),
-                            static_cast<float>(windowRect.bottom - windowRect.top)
-                        );
+    ImVec2 windowSize = {static_cast<float>(windowRect.right - windowRect.left),
+                         static_cast<float>(windowRect.bottom - windowRect.top)};
     
     //Make sure the ImGui window is always filling up the entire OS Window
     ImGui::SetNextWindowSize(windowSize);
-    ImGui::SetNextWindowPos(ImVec2(0, 0));
+    ImGui::SetNextWindowPos({0, 0});
 
     ImGui::PushFont(pressStartFont);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0)); //Other windows will add their own padding
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0}); //Other windows will add their own padding
 
-    if (ImGui::Begin("CTMMainWindow", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize))
+    if(ImGui::Begin("CTMMainWindow", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize))
     {
         //Non-Client Region (NC Region)
         ImGui::SetCursorPos({0, 0});
-        if (ImGui::BeginChild("CTMNCRegion", {windowSize.x, NCREGION_HEIGHT}, 0, 0))
+        if(ImGui::BeginChild("CTMNCRegion", {windowSize.x, NCREGION_HEIGHT}))
         {
             //Title
             ImVec2 titleSize = ImGui::CalcTextSize(NCRegionAppTitle);
             float  titleX    = (windowSize.x - titleSize.x) * 0.5f;
             float  titleY    = (NCREGION_HEIGHT - titleSize.y) * 0.5f;
 
-            ImGui::SetCursorPos(ImVec2(titleX, titleY)); //Vertically and Horizontally center text in NC region
+            ImGui::SetCursorPos({titleX, titleY});
             ImGui::Text("%s", NCRegionAppTitle);
 
             //Close, Maximize, Minimize Button
@@ -109,16 +109,17 @@ void CTMApp::RenderFrameContent()
                         minimizeButtonPos = {windowSize.x - (3 * NCREGION_HEIGHT), 0};
             
             //Close button
-            RenderNCRegionButton(crossButton, NCRegionButtonSize, crossButtonPos, ImVec4(0.8f, 0.2f, 0.2f, 0.8f),
-                                ImVec4(1.0f, 0.0f, 0.0f, 1.0f), CTMAppNCButtonState::CloseButtonHovered);
+            RenderNCRegionButton(crossButton, NCRegionButtonSize, crossButtonPos, {0.8f, 0.2f, 0.2f, 0.8f},
+                                {1.0f, 0.0f, 0.0f, 1.0f}, CTMAppNCButtonState::CloseButtonHovered);
 
             //Maximize button
-            RenderNCRegionButton(maximizeButton, NCRegionButtonSize, maximizeButtonPos, ImVec4(0.7f, 0.7f, 0.7f, 0.8f),
-                                ImVec4(0.5f, 0.5f, 0.5f, 1.0f), CTMAppNCButtonState::MaximizeButtonHovered);
+            RenderNCRegionButton(maximizeButton, NCRegionButtonSize, maximizeButtonPos, {0.7f, 0.7f, 0.7f, 0.8f},
+                                {0.5f, 0.5f, 0.5f, 1.0f}, CTMAppNCButtonState::MaximizeButtonHovered);
 
             //Minimize button
-            RenderNCRegionButton(minimizeButton, NCRegionButtonSize, minimizeButtonPos, ImVec4(0.7f, 0.7f, 0.7f, 0.8f),
-                                ImVec4(0.5f, 0.5f, 0.5f, 1.0f), CTMAppNCButtonState::MinimizeButtonHovered);
+            RenderNCRegionButton(minimizeButton, NCRegionButtonSize, minimizeButtonPos, {0.7f, 0.7f, 0.7f, 0.8f},
+                                {0.5f, 0.5f, 0.5f, 1.0f}, CTMAppNCButtonState::MinimizeButtonHovered);
+            
         }
         ImGui::EndChild();
 
@@ -141,7 +142,7 @@ void CTMApp::RenderFrame()
     //Entire app gui in this one function
     RenderFrameContent();
 
-    // Rendering
+    //Rendering
     ImGui::Render();
     const float clear_color_with_alpha[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
     g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, nullptr);
@@ -163,7 +164,7 @@ void CTMApp::RenderNCRegionButton(const char* buttonLabel, const ImVec2& buttonS
 {
     ImGui::SetCursorPos(buttonPos);
 
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+    ImGui::PushStyleColor(ImGuiCol_Button, {0, 0, 0, 0});
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hoveredColor);
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, activeColor);
 
@@ -176,7 +177,7 @@ void CTMApp::RenderNCRegionButton(const char* buttonLabel, const ImVec2& buttonS
     ImGui::PopStyleColor(3);
 }
 
-//----------Main loop handlers----------
+//----------MAIN LOOP HANDLERS----------
 void CTMApp::HandleMessages()
 {
     MSG msg;
@@ -222,7 +223,7 @@ void CTMApp::HandleResizing()
     }
 }
 
-//----------Helper functions----------
+//----------HELPER FUNCTIONS----------
 void CTMApp::InitializeMainWindow()
 {
     //Register an window class
@@ -234,11 +235,14 @@ void CTMApp::InitializeMainWindow()
                                     100, 100, windowWidth, windowHeight, nullptr, nullptr, wc.hInstance, this); //Passing 'this' to lpParam to access it in WndProc later
 }
 
-void CTMApp::SetupImGui()
+void CTMApp::SetupImGuiAndPlot()
 {
     //Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+
+    //Create ImPlot context
+    ImPlot::CreateContext();
 
     //Setup Platform/Renderer backends
     ImGui_ImplWin32_Init(windowHandle);
@@ -247,9 +251,6 @@ void CTMApp::SetupImGui()
 
 bool CTMApp::SetupCTMSettings()
 {
-    //Get the font manager instance once
-    CTMStateManager& stateManager = CTMStateManager::getInstance();
-
     //Store the windowHandle in our State Manager, its sort of reliable, atleast for me
     stateManager.SetWindowHandle(windowHandle);
 
@@ -262,7 +263,7 @@ bool CTMApp::SetupCTMSettings()
 
     //Initialize rest of the settings FOR THIS CLASS using settings class
     //Other classes will use their own methods to initialize their own stuff
-    CTMSettingsMenu::ApplyDisplaySettings();
+    CTMSettingsScreen::ApplyDisplaySettings();
 
     return true;
 }
@@ -368,7 +369,7 @@ void CTMApp::CleanupRenderTarget()
     if (g_mainRenderTargetView) { g_mainRenderTargetView->Release(); g_mainRenderTargetView = nullptr; }
 }
 
-//----------Window message handlers----------
+//----------WINDOW MESSAGE HANDLERS----------
 LRESULT WINAPI CTMApp::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch(msg)

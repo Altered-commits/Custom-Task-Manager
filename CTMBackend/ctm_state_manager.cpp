@@ -11,7 +11,7 @@ CTMStateManager::~CTMStateManager()
     SaveSettings();
 }
 
-//--------------------WND HANDLE MANAGER--------------------
+//--------------------MISC MANAGER--------------------
 void CTMStateManager::SetWindowHandle(HWND externalWndHandle)
 {
     windowHandle = externalWndHandle;
@@ -20,6 +20,16 @@ void CTMStateManager::SetWindowHandle(HWND externalWndHandle)
 HWND CTMStateManager::GetWindowHandle()
 {
     return windowHandle;
+}
+
+void CTMStateManager::SetIsPerfScreen(bool externalIsPerfScreen)
+{
+    isPerfScreen = externalIsPerfScreen;
+}
+    
+bool CTMStateManager::GetIsPerfScreen()
+{
+    return isPerfScreen;
 }
 
 //--------------------FONT MANAGER--------------------
