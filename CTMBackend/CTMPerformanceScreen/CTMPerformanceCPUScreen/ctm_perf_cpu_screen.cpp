@@ -7,7 +7,7 @@
 //Equivalent to OnInit function
 CTMPerformanceCPUScreen::CTMPerformanceCPUScreen()
 {
-    //Try getting 'NtQuerySystemInformation' function from ntdll.dll, if can't don't let this class initialize
+    //Try getting 'NtQuerySystemInformation' function from ntdll.dll, if can't, don't let this class initialize
     if(!CTMConstructorInitNTDLL())
         return;
 

@@ -1,6 +1,6 @@
 # Custom Task Manager (CTM)
 
-### I am making this application to sort of try to mimic Windows 'Task Manager'. It uses ImGui to render all the content of CTM (Both the Client and the Non-Client Region).
+### I am making this application to sort of try to mimic Windows 'Task Manager'. It uses Dear ImGui and ImPlot to render all the content of CTM (Both the Client and the Non-Client Region).
 
 # !!! Important !!!
 - Incase the app crashes unexpectedly, chances are the ETW listener may not have closed properly. Go to `cmd` and run the command:
@@ -23,7 +23,13 @@
 - C++17 or later (for the build system)
 - DirectX 11
 - CMake
-- ImGui (This project uses DirectX + Win32, so feel free to change `ImGUIBackend` and `ImGUI` folder to match your requirements)
+- ImGui & ImPlot _(This project uses DirectX + Win32, so feel free to change `ImGUIBackend` and `ImGUI` folder to match your requirements)_
+
+## Third-Party Libraries
+This project uses the following third-party libraries:
+
+- [Dear ImGui](https://github.com/ocornut/imgui), licensed under the [MIT License](ImGUI/LICENSE.txt).
+- [ImPlot](https://github.com/epezent/implot), licensed under the [MIT License](ImPlot/LICENSE).
 
 ## How to use?
 - Clone the repository to your local machine.
