@@ -35,7 +35,7 @@ bool CTMProcessScreen::CTMConstructorInitNTDLL()
     hNtdll = GetModuleHandleW(L"ntdll.dll");
     if(!hNtdll)
     {
-        std::cerr << "Failed to get ntdll.dll\n";
+        CTM_LOG_ERROR("Failed to get module handle for ntdll.dll");
         return false;
     }
 
@@ -48,7 +48,7 @@ bool CTMProcessScreen::CTMConstructorInitNTDLL()
 
     if(!NtQueryInformationProcess || !NtQuerySystemInformation)
     {
-        std::cerr << "Failed to resolve NT DLL functions\n";
+        CTM_LOG_ERROR("Failed to get proc addresses for ntdll.dll functions");
         hNtdll = nullptr;
         return false;
     }
@@ -60,7 +60,7 @@ bool CTMProcessScreen::CTMConstructorInitEventTracingThread()
 {
     if(!processUsageEventTracing.Start())
     {
-        std::cerr << "Failed to initialize Event Tracing.\n";
+        CTM_LOG_ERROR("Failed to start event tracing. Look at the above errors for more information.");
         return false;
     }
 
@@ -79,7 +79,7 @@ bool CTMProcessScreen::CTMConstructorInitEventTracingThread()
     //If ProcessEvents failed, stop the event tracing entirely
     if (!initSuccess.load())
     {
-        std::cerr << "Event Tracing failed to initialize.\n";
+        CTM_LOG_ERROR("Failed to process events for event tracing.");
         processUsageEventTracing.Stop();
         processUsageEventTracingThread.join(); //Ensure the thread has finished before returning
         return false;
@@ -402,7 +402,7 @@ void CTMProcessScreen::UpdateProcessInfo()
         RemoveStaleEntries();
     }
     else
-        std::cerr << "Failed to get system process information.\n";
+        CTM_LOG_ERROR("Failed to get system process information.");
 }
 
 void CTMProcessScreen::UpdateProcessMapWithProcessHandle(HANDLE hProcess, DWORD processId, const std::string& processName,
@@ -541,12 +541,12 @@ void CTMProcessScreen::TerminateChildProcess(DWORD processId)
     if(it != processIdToHandleMap.end()) //HANDLE exists
     {
         if(!TerminateProcess(it->second, 0))
-            std::cerr << "Failed to terminate process with id: " << processId << ". Error: " << GetLastError() << '\n';
+            CTM_LOG_ERROR("Failed to terminate process with pid: ", processId, ". Error code: ", GetLastError());
         else
-            std::cout << "Successfully terminated process with id: " << processId << '\n';
+            CTM_LOG_SUCCESS("Successfully terminated process with pid: ", processId);
     }
     else //HANDLE doesn't exist
-        std::cerr << "Failed to find process id " << processId << " in map. The process may have been terminated beforehand.\n";
+        CTM_LOG_ERROR("Failed to find process with pid: ", processId, " in map. The process may have been terminated beforehand.");
 }
 
 void CTMProcessScreen::TerminateGroupProcess()
@@ -558,12 +558,12 @@ void CTMProcessScreen::TerminateGroupProcess()
     auto it = groupedProcessesMap.find(processGroupKey);
     if(it != groupedProcessesMap.end()) //Exists, loop through all the processes and terminate them
     {
-        std::cout << "Terminating process group: " << processGroupKey << '\n';
+        CTM_LOG_INFO("Terminating process group -> ", processGroupKey);
         for (auto &&i : it->second)
             TerminateChildProcess(i.processId);
     }
     else //Doesn't exist, may have been terminated beforehand
-        std::cerr << "Failed to terminate process group: " << processGroupKey << ", may have been terminated beforehand.\n";
+        CTM_LOG_ERROR("Failed to terminate process group -> ", processGroupKey, ". The group may have been terminated beforehand.");
 }
 
 void CTMProcessScreen::RemoveStaleEntries()

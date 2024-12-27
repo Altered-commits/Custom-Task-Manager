@@ -9,40 +9,43 @@
  * Rest idk if i'm doing stuff right, i am still new to winapi and windows app programming stuff.
  */
 
-#include <iostream> //For debugging
+//My stuff
 #include "CTMBackend/ctm_app.h"
 #include "CTMBackend/ctm_misc.h"
 
 int main(void)
 {
     //Prompt user to run this process as Administrator if it isn't running as Administrator already
-    if(!IsUserAdmin())
+    if(!CTMMisc::IsUserAdmin())
     {
-        if(!PromptUserForAdministratorAccess())
+        if(!CTMMisc::PromptUserForAdministratorAccess())
         {
-            std::cerr << "Failed to relaunch with administrator privileges. Exiting.\n";
+            CTM_LOG_ERROR("Failed to relaunch application with administrator privileges.");
             return 1;
         }
 
         return 0; //The elevated instance will take over
     }
 
+    //Before we go ahead, try to enable virtual terminal for color coded outputs
+    CTMMisc::EnableVirtualTerminalProcessing();
+
     //Create mutex so that i can prevent multiple instances of app
     HANDLE hMutex = CreateMutexW(NULL, TRUE, CTM_APP_MUTEX_NAME);
     
     if(hMutex == NULL)
     {
-        std::cerr << "Failed to initialize mutex. Error code: " << GetLastError() << '\n';
+        CTM_LOG_ERROR("Failed to initialize Mutex. Error code: ", GetLastError());
         return 1;
     }
 
     //I need RAII
-    MutexGuard mutexGuard(hMutex);
+    CTMMutexGuard mutexGuard(hMutex);
     
     //Mutex already exists, check for responsiveness
     if(GetLastError() == ERROR_ALREADY_EXISTS)
     {
-        std::cerr << "An instance of this app already exists, checking for responsiveness.\n";
+        CTM_LOG_INFO("An instance of this application already exists, checking for its responsiveness.");
         
         HWND hWnd = FindWindowW(CTM_APP_CLASS_NAME, NULL);
 
@@ -52,6 +55,8 @@ int main(void)
             //Window is responsive
             if(SendMessageTimeoutW(hWnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG, 2000, NULL))
             {
+                CTM_LOG_SUCCESS("The application instance is responsive, brining it to foreground.");
+
                 ShowWindow(hWnd, SW_RESTORE);
                 SetForegroundWindow(hWnd);
 
@@ -62,42 +67,43 @@ int main(void)
             //Window is unresponsive, try to terminate the hung process and gain access to mutex ownership
             else
             {
-                std::cout << "Window is unresponsive, attempting to terminate the process and acquire mutex.\n";
+                CTM_LOG_INFO("The application instance is unresponsive, attempting to terminate that app and acquire its Mutex.");
 
                 //YAY WE GOT LUCKY
-                if(TerminateAndAcquireMutexOwnership(hWnd, hMutex))
-                    std::cout << "Proceeding with app initialization.\n";
+                if(CTMMisc::TerminateAndAcquireMutexOwnership(hWnd, hMutex))
+                    CTM_LOG_SUCCESS("Acquired Mutex and terminated the hung application, proceeding with normal initialization.");
                 //Just give up at this point, cuz i give up, nothing works, this apps trash beyond trash then
                 else
                 {
-                    std::cerr << "Just give up at this point. I or Windows can no longer help you.\n";
+                    CTM_LOG_ERROR("Critical Error, nothing seems to work. I or Windows can no longer help you.");
                     mutexGuard.OnlyCloseHandle();
                     return 1;
                 }
             }
         }
         else
-            std::cerr << "Failed to find the window, allowing this instance to run, assuming no other instance exists.\n";
+            CTM_LOG_WARNING("Failed to find an application instance, allowing this instance to initialize UNDER the assumption that no other instance exists.");
     }
 
     //Let's get the good stuff (top privileges)
-    if(!EnableOrDisablePrivilege(L"SeDebugPrivilege")) //Having to type it instead of using SE_DEBUG_NAME cuz GCC is crying
-        std::cerr << "Failed to enable 'SeDebugPrivilege'. Proceeding with less information.\n";
+    if(!CTMMisc::EnableOrDisablePrivilege(L"SeDebugPrivilege")) //Having to type it instead of using SE_DEBUG_NAME cuz GCC is crying
+        CTM_LOG_WARNING("Failed to enable 'SeDebugPrivilege'. Proceeding with less information.");
     else
-        std::cout << "Succeeded in enabling 'SeDebugPrivilege'. I am not sure how safe this truly is, good luck.\n";
+        CTM_LOG_SUCCESS("Successfully enabled 'SeDebugPrivilege'... Good luck.");
 
     //The actual application
     CTMApp app;
     CTMAppErrorCodes code = app.Initialize();
 
-    if(code != CTMAppErrorCodes::InitSuccess) {
-        std::cerr << "Failed to intialize custom task manager. Error code: " << static_cast<int>(code) << '\n';
-        //Failed to launch the app, MutexGuard automatically releases mutex due to RAII
+    if(code != CTMAppErrorCodes::InitSuccess)
+    {
+        CTM_LOG_ERROR("Failed to initialize CTM (Custom Task Manager). Error code: ", static_cast<int>(code));
+        //Failed to launch the app, CTMMutexGuard automatically releases mutex due to RAII
         return 1;
     }
-
+    
     app.Run();
 
-    //Successfully closed the app, MutexGuard automatically releases mutex due to RAII
+    //Successfully closed the app, CTMMutexGuard automatically releases mutex due to RAII
     return 0;
 }

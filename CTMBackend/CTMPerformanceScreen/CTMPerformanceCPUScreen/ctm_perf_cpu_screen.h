@@ -8,10 +8,10 @@
 //My stuff
 #include "../ctm_perf_graph.h"
 #include "../../ctm_base_state.h"
+#include "../../ctm_logger.h"
 //Stdlib stuff
 #include <variant>
 #include <vector>
-#include <iostream>
 #include <memory>
 #include <cmath>
 #include <cstring>
@@ -71,6 +71,8 @@ private: //Logical processor variables
     DWORD                      processorPerformanceInfoSize = 0;
     //For heatmap, we pre calculate the grid rows and columns in the constructor itself
     DWORD                      heatmapGridRows = 0, heatmapGridColumns = 0;
+    //Just a small optimization, we won't update information if collapsing header is not expanded
+    bool                       isHeatmapHeaderExpanded = false;
 
 private: //Statistics variables
     //Enum class to access vector indexes properly without hardcoding index.

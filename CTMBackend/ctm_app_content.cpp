@@ -100,7 +100,7 @@ void CTMAppContent::RenderCTMContent(const ImVec2& contentRegion)
         if(currentScreen)
             currentScreen->Render();
         else
-            ImGui::Text("Click on a screen to start seeing data.");    
+            ImGui::Text("<- Select a page to start showing data");    
     }
     ImGui::EndChild();
 }

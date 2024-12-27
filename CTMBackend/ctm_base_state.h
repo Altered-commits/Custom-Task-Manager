@@ -11,6 +11,7 @@ enum class CTMScreenState : std::uint8_t
     Apps,
     Services,
     Settings,
+    PageCount, //Personal use
     None
 };
 

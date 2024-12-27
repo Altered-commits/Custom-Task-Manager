@@ -13,7 +13,6 @@
 #include "CTMPerformanceCPUScreen/ctm_perf_cpu_screen.h"
 //Stdlib stuff
 #include <memory>
-#include <iostream> //For debugging
 
 class CTMPerformanceScreen : public CTMBaseScreen
 {

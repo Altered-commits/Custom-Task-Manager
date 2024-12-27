@@ -31,7 +31,7 @@ bool CTMPerformanceCPUScreen::CTMConstructorInitNTDLL()
     hNtdll = GetModuleHandleA("ntdll.dll");
     if(!hNtdll)
     {
-        std::cerr << "Failed to get ntdll.dll\n";
+        CTM_LOG_ERROR("Failed to get module handle for ntdll.dll");
         return false;
     }
 
@@ -41,7 +41,7 @@ bool CTMPerformanceCPUScreen::CTMConstructorInitNTDLL()
 
     if(!NtQuerySystemInformation)
     {
-        std::cerr << "Failed to resolve NT DLL function\n";
+        CTM_LOG_ERROR("Failed to get 'NtQuerySystemInformation' from ntdll.dll");
         return false;
     }
 
@@ -113,7 +113,7 @@ bool CTMPerformanceCPUScreen::CTMConstructorGetCPUInfoFromRegistry()
     LSTATUS result = RegOpenKeyExA(HKEY_LOCAL_MACHINE, "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0", 0, KEY_READ, &hKey);
     if(result != ERROR_SUCCESS)
     {
-        std::cerr << "Failed to open the 'HKEY_LOCAL_MACHINE' for reading CPU name and base speed. Error: " << result << '\n';
+        CTM_LOG_ERROR("Failed to open registry key 'HKEY_LOCAL_MACHINE' for reading CPU name and base speed. Error code: ", result);
         return false;
     }
 
@@ -131,7 +131,7 @@ bool CTMPerformanceCPUScreen::CTMConstructorGetCPUInfoFromRegistry()
     result = RegQueryValueExA(hKey, "~MHz", nullptr, &type, reinterpret_cast<LPBYTE>(&baseSpeed), &baseSpeedSize);
     if(result != ERROR_SUCCESS || type != REG_DWORD)
     {
-        std::cerr << "Failed to retrieve '~MHz'. Error: " << result << '\n';
+        CTM_LOG_ERROR("Failed to retrieve ~MHz (Base Speed). Error code: ", result);
         RegCloseKey(hKey);
         return false;
     }
@@ -151,7 +151,7 @@ bool CTMPerformanceCPUScreen::CTMConstructorGetCPUName(HKEY hKey)
     LSTATUS result = RegQueryValueExA(hKey, "ProcessorNameString", nullptr, &type, nullptr, &cpuNameBufferSize);
     if(result != ERROR_SUCCESS || type != REG_SZ)
     {
-        std::cerr << "Failed to query size of 'ProcessorNameString'. Error: " << result << '\n';
+        CTM_LOG_ERROR("Failed to query size of 'ProcessorNameString'. Error code: ", result);
         return false;
     }
 
@@ -162,7 +162,7 @@ bool CTMPerformanceCPUScreen::CTMConstructorGetCPUName(HKEY hKey)
     result = RegQueryValueExA(hKey, "ProcessorNameString", nullptr, &type, cpuNameBufferPtr.get(), &cpuNameBufferSize);
     if(result != ERROR_SUCCESS || type != REG_SZ)
     {
-        std::cerr << "Failed to retrieve 'ProcessorNameString'. Error: " << result << '\n';
+        CTM_LOG_ERROR("Failed to retrieve 'ProcessorNameString'. Error code: ", result);
         return false;
     }
 
@@ -214,14 +214,14 @@ bool CTMPerformanceCPUScreen::CTMConstructorGetCPULogicalInfo()
         if(!GetLogicalProcessorInformation(reinterpret_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION>(processorInfoBuffer.get()),
                                 &processorInfoLen))
         {
-            std::cerr << "Failed to get processor information. Error code: " << GetLastError() << '\n';
+            CTM_LOG_ERROR("Failed to get logical processor information. Error code: ", GetLastError());
             return false;
         }
     }
     //Else it failed due to some other error, simply return false
     else
     {
-        std::cerr << "GetLogicalProcessorInformation failed initially with error code: " << errorCode << '\n';
+        CTM_LOG_ERROR("Failed to query logical processor information initially. Error code: ", errorCode);
         return false;
     }
     //Well if you reached till here, that means we were successful in retrieving the processor information
@@ -300,7 +300,8 @@ void CTMPerformanceCPUScreen::OnRender()
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 10.0f));
 
     //Create a collapsable header containing our per logical processors heatmap
-    if(ImGui::CollapsingHeader("Logical Processors Heatmap"))
+    isHeatmapHeaderExpanded = ImGui::CollapsingHeader("Logical Processors Heatmap");
+    if(isHeatmapHeaderExpanded)
         RenderLogicalProcessorHeatmap();
 
     //Even more spacing
@@ -321,8 +322,9 @@ void CTMPerformanceCPUScreen::OnUpdate()
     //Add all the stuff to metrics vector
     metricsVector[0].second = currentCpuUsage;
 
-    //Update per logical processor information
-    UpdatePerLogicalProcessorInfo();
+    //Update per logical processor information if 'isHeatmapHeaderExpanded' is true
+    if(isHeatmapHeaderExpanded)
+        UpdatePerLogicalProcessorInfo();
 }
 
 //--------------------RENDER FUNCTIONS--------------------
@@ -467,13 +469,13 @@ void CTMPerformanceCPUScreen::UpdatePerLogicalProcessorInfo()
     if(NtQuerySystemInformation(static_cast<SYSTEM_INFORMATION_CLASS>(SystemProcessorPerformanceInformation),
                             currProcessorPerformanceInfo.data(), processorPerformanceInfoSize, nullptr) != STATUS_SUCCESS)
     {
-        std::cerr << "Failed to query system information. Did not get processor performance information\n";
+        CTM_LOG_ERROR("Failed to get processor performance information.");
         return;
     }
     //Successfully queried the information, now calculate the usage like we did in 'GetTotalCPUUsage' function-
     //-but for each logical processor.
-    //Because all containers (for processor performance info) are guaranteed same size, we can simply use .size() on any of the vector-
-    //-except for final usage vector!!!!
+    //As all containers (except for final usage vector) for processor performance info are guaranteed to be same size-
+    //-we can simply use .size() of any vector
     for (std::size_t i = 0; i < currProcessorPerformanceInfo.size(); i++)
     {
         auto& currInfoIthIndex = currProcessorPerformanceInfo[i];

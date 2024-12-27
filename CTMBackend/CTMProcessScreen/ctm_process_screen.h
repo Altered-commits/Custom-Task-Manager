@@ -5,6 +5,7 @@
 #include "../../ImGUI/imgui.h"
 //My stuff
 #include "../ctm_base_state.h"
+#include "../ctm_logger.h"
 #include "ctm_process_screen_etw.h"
 //Stdlib stuff
 #include <vector>
@@ -15,7 +16,6 @@
 #include <atomic>
 #include <variant>
 #include <algorithm>
-#include <iostream> //For debugging
 //Winapi stuff
 #include <windows.h>
 #include <Psapi.h>

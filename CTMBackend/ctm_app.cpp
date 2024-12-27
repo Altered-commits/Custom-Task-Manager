@@ -185,7 +185,8 @@ void CTMApp::HandleMessages()
     // auto targetFrameTime = std::chrono::milliseconds(16);  // ~60 FPS (16ms per frame)
     // auto frameStartTime = std::chrono::high_resolution_clock::now();
 
-    while (::PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE)) {
+    while(::PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE))
+    {
         ::TranslateMessage(&msg);
         ::DispatchMessage(&msg);
         if (msg.message == WM_QUIT)
@@ -205,7 +206,8 @@ void CTMApp::HandleMessages()
 
 bool CTMApp::HandleOcclusion() 
 {
-    if (g_SwapChainOccluded && g_pSwapChain->Present(0, DXGI_PRESENT_TEST) == DXGI_STATUS_OCCLUDED) {
+    if(g_SwapChainOccluded && g_pSwapChain->Present(0, DXGI_PRESENT_TEST) == DXGI_STATUS_OCCLUDED)
+    {
         ::Sleep(10);
         return true;
     }
@@ -215,7 +217,8 @@ bool CTMApp::HandleOcclusion()
 
 void CTMApp::HandleResizing()
 {
-    if (g_ResizeWidth != 0 && g_ResizeHeight != 0) {
+    if(g_ResizeWidth != 0 && g_ResizeHeight != 0)
+    {
         CleanupRenderTarget();
         g_pSwapChain->ResizeBuffers(0, g_ResizeWidth, g_ResizeHeight, DXGI_FORMAT_UNKNOWN, 0);
         g_ResizeWidth = g_ResizeHeight = 0;
@@ -227,12 +230,13 @@ void CTMApp::HandleResizing()
 void CTMApp::InitializeMainWindow()
 {
     //Register an window class
-    wc = { sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, CTM_APP_CLASS_NAME, nullptr };
+    wc = { sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr,
+            nullptr, CTM_APP_CLASS_NAME, nullptr };
     ::RegisterClassExW(&wc);
 
     //Create the actual window with sysmenu, but we override it anyways with our ImGui window
     windowHandle = ::CreateWindowW(wc.lpszClassName, CTM_APP_WINDOW_NAME, WS_THICKFRAME | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX,
-                                    100, 100, windowWidth, windowHeight, nullptr, nullptr, wc.hInstance, this); //Passing 'this' to lpParam to access it in WndProc later
+                        100, 100, windowWidth, windowHeight, nullptr, nullptr, wc.hInstance, this); //Passing 'this' to lpParam to access it in WndProc later
 }
 
 void CTMApp::SetupImGuiAndPlot()
@@ -279,31 +283,9 @@ bool CTMApp::IsWindowMaximized(HWND hWnd)
     return false;
 }
 
-bool CTMApp::IsWindows10OrGreater()
-{
-    typedef LONG(WINAPI* RtlGetVersionPtr)(PRTL_OSVERSIONINFOW);
-    
-    HMODULE hNtdll = ::GetModuleHandleW(L"ntdll.dll");
-    if (!hNtdll)
-        return false;
-
-    auto RtlGetVersion = (RtlGetVersionPtr)::GetProcAddress(hNtdll, "RtlGetVersion");
-    if (!RtlGetVersion)
-        return false;
-
-    RTL_OSVERSIONINFOW osvi  = { 0 };
-    osvi.dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOW);
-
-    if (RtlGetVersion(&osvi) == 0)
-        return (osvi.dwMajorVersion > 10) || 
-               (osvi.dwMajorVersion == 10 && osvi.dwMinorVersion >= 0);
-
-    return false;
-}
-
 void CTMApp::TryRemoveWindowsRoundedCorners()
 {
-    if(IsWindows10OrGreater())
+    if(CTMMisc::IsWindows10OrGreater())
     {
         //Defining it on my own as GCC is not recognizing the enums properly, even when i include the dwmapi.h header file
         DWORD DWMWAWindowCornerPreference = 33; //Referring to the enum value -> DWMWA_WINDOW_CORNER_PREFERENCE
@@ -338,9 +320,9 @@ bool CTMApp::CreateDeviceD3D()
     D3D_FEATURE_LEVEL featureLevel;
     const D3D_FEATURE_LEVEL featureLevelArray[2] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0, };
     HRESULT res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice, &featureLevel, &g_pd3dDeviceContext);
-    if (res == DXGI_ERROR_UNSUPPORTED) // Try high-performance WARP software driver if hardware is not available.
+    if(res == DXGI_ERROR_UNSUPPORTED) // Try high-performance WARP software driver if hardware is not available.
         res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_WARP, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice, &featureLevel, &g_pd3dDeviceContext);
-    if (res != S_OK)
+    if(res != S_OK)
         return false;
 
     CreateRenderTarget();
@@ -351,9 +333,9 @@ void CTMApp::CleanupDeviceD3D()
 {
     CleanupRenderTarget();
 
-    if (g_pSwapChain) { g_pSwapChain->Release(); g_pSwapChain = nullptr; }
-    if (g_pd3dDeviceContext) { g_pd3dDeviceContext->Release(); g_pd3dDeviceContext = nullptr; }
-    if (g_pd3dDevice) { g_pd3dDevice->Release(); g_pd3dDevice = nullptr; }
+    if(g_pSwapChain)        { g_pSwapChain->Release(); g_pSwapChain = nullptr; }
+    if(g_pd3dDeviceContext) { g_pd3dDeviceContext->Release(); g_pd3dDeviceContext = nullptr; }
+    if(g_pd3dDevice)        { g_pd3dDevice->Release(); g_pd3dDevice = nullptr; }
 }
 
 void CTMApp::CreateRenderTarget()
@@ -366,7 +348,7 @@ void CTMApp::CreateRenderTarget()
 
 void CTMApp::CleanupRenderTarget()
 {
-    if (g_mainRenderTargetView) { g_mainRenderTargetView->Release(); g_mainRenderTargetView = nullptr; }
+    if(g_mainRenderTargetView) { g_mainRenderTargetView->Release(); g_mainRenderTargetView = nullptr; }
 }
 
 //----------WINDOW MESSAGE HANDLERS----------

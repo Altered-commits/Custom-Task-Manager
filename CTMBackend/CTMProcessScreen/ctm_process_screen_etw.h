@@ -9,9 +9,9 @@
 #include <unordered_map>
 #include <memory>
 #include <mutex>
-#include <iostream> //For debugging
 //My stuff
 #include "../ctm_constants.h"
+#include "../ctm_logger.h"
 
 //Just for better understanding, also we want total network usage across TCP and UDP (Both IPv4 and IPv6)
 using ProcessUsageType        = ULONGLONG;

@@ -9,12 +9,11 @@
 #include "ctm_constants.h"
 #include "ctm_app_content.h"
 #include "ctm_state_manager.h"
+#include "ctm_misc.h"
 //Windows stuff
 #include <d3d11.h>
 #include <windowsx.h>
 #include <dwmapi.h>
-//Stdlib stuff
-#include <iostream> //For debugging purposes
 
 //Forward declare as told by imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -83,7 +82,6 @@ class CTMApp {
         void SetupImGuiAndPlot();
         bool SetupCTMSettings();
         bool IsWindowMaximized(HWND);
-        bool IsWindows10OrGreater();
         void TryRemoveWindowsRoundedCorners();
 
         bool CreateDeviceD3D();

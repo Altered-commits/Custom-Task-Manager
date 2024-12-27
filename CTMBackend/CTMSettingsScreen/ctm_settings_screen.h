@@ -47,11 +47,12 @@ private: //Settings variables
     const char* dispModes[2]       = { "Normal", "Fullscreen" };
     
     //----------Page section----------
-    int         currentPageIndex   = static_cast<int>(CTMScreenState::Settings);
-    const char* pages[5]           = { "Processes", "Performance", "Apps", "Services", "Settings" };
+    constexpr static int pageCount        = static_cast<int>(CTMScreenState::PageCount);
+    int                  currentPageIndex = static_cast<int>(CTMScreenState::Settings);
+    const char*          pages[pageCount] = { "Processes", "Performance", "Apps", "Services", "Settings" };
 
 private: //Common variables
-    const float comboBoxWidth     = 200.0f;
+    const float comboBoxWidth     = 230.0f;
 };
 
 #endif

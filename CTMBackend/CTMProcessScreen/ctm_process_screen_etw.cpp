@@ -13,7 +13,7 @@ UniquePtrToByteArray CTMProcessScreenEventTracing::eventInfoBuffer     = nullptr
 bool CTMProcessScreenEventTracing::Start()
 {
     if(!StartTraceSession())
-            return false;
+        return false;
 
     if(!EnableProvider(true))
         return false;
@@ -54,7 +54,9 @@ void CTMProcessScreenEventTracing::Cleanup()
 
 bool CTMProcessScreenEventTracing::StartTraceSession()
 {
-    ULONG bufferSize = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(WCHAR) * 1024;
+    //The part after EVENT_TRACE_PROPERTIES is session name and logger name.
+    //What i assume is windows by default will use session name as logger name, hence this '((wcslen(sessionName) + 2) * 2)' length works
+    ULONG bufferSize = sizeof(EVENT_TRACE_PROPERTIES) + ((wcslen(sessionName) + 2) * 2);
     tracePropsBuffer = std::make_unique<BYTE[]>(bufferSize);
     ZeroMemory(tracePropsBuffer.get(), bufferSize);
 
@@ -67,8 +69,37 @@ bool CTMProcessScreenEventTracing::StartTraceSession()
 
     ULONG status = StartTraceW(&sessionHandle, sessionName, properties);
     if(status != ERROR_SUCCESS)
-        return false;
+    {
+        CTM_LOG_ERROR_NONL("Failed to start trace session.");
+        switch(status)
+        {
+            case ERROR_ALREADY_EXISTS:
+                CTM_LOG_TEXT(" A session with the same name or GUID is already running.");
+                CTM_LOG_INFO("Suggestion -> Try running the command `logman stop CTM_ProcessScreen_ETWSession -ets` in Terminal/Cmd(Admin).");
+                break;
+            
+            case ERROR_NO_SYSTEM_RESOURCES:
+                CTM_LOG_TEXT(" No system resources available.");
+                break;
+            
+            case ERROR_ACCESS_DENIED:
+                CTM_LOG_TEXT(" Access Denied. Maybe the app wasn't given enough permissions.");
+                break;
+            
+            case ERROR_BAD_LENGTH:
+                CTM_LOG_TEXT(" Bad access length.");
+                CTM_LOG_INFO("Suggestion -> In ctm_process_screen_etw.cpp -> 'StartTraceSession' function, change bufferSize to something big (Value in bytes).");
+                break;
+            
+            default:
+                CTM_LOG_TEXT(" Error code: ", status);
+                break;
+        }
 
+        return false;
+    }
+
+    CTM_LOG_SUCCESS("Successfully started trace session.");
     return true;
 }
 
@@ -77,10 +108,27 @@ bool CTMProcessScreenEventTracing::ConfigureProvider(const GUID& providerGuid, U
     ULONG status = EnableTraceEx2(sessionHandle, &providerGuid, controlCode, TRACE_LEVEL_INFORMATION, 0, 0, 0, nullptr);
     if(status != ERROR_SUCCESS)
     {
-        std::cerr << "Failed to " << (controlCode == EVENT_CONTROL_CODE_ENABLE_PROVIDER ? "enable" : "disable")
-                  << " provider(Data1): " << providerGuid.Data1 << ". Error: " << status << '\n';
+        CTM_LOG_ERROR_NONL("Failed to ", (controlCode == EVENT_CONTROL_CODE_ENABLE_PROVIDER ? "enable" : "disable"), " provider(Data1): ",
+                    providerGuid.Data1);
+        switch (status)
+        {
+            case ERROR_ACCESS_DENIED:
+                CTM_LOG_TEXT(". Access denied. Maybe the application did not gain enough Administrator privileges.");
+                break;
+            
+            case ERROR_NO_SYSTEM_RESOURCES:
+                CTM_LOG_TEXT(". Exceeded the number of trace sessions that can enable the provider.");
+                break;
+
+            default:
+                CTM_LOG_TEXT(". Error code: ", status);
+                break;
+        }
         return false;
     }
+
+    CTM_LOG_SUCCESS("Successfully ", (controlCode == EVENT_CONTROL_CODE_ENABLE_PROVIDER ? "enabled" : "disabled"), " provider(Data1): ",
+                    providerGuid.Data1);
     return true;
 }
 
@@ -123,10 +171,12 @@ bool CTMProcessScreenEventTracing::OpenTraceSession()
 
     if(traceHandle == INVALID_PROCESSTRACE_HANDLE)
     {
+        CTM_LOG_ERROR("Failed to OpenTrace. Invalid Trace Handle returned by OpenTraceW.");
         Cleanup();
         return false;
     }
 
+    CTM_LOG_SUCCESS("Successfully opened trace session.");
     return true;
 }
 
@@ -155,7 +205,7 @@ void CTMProcessScreenEventTracing::WritePropInfoToMap(PEVENT_RECORD eventRecord,
         //Failed to get information, print some error and move on for now
         if(status != ERROR_SUCCESS)
         {
-            std::cerr << "Failed to get Event Information. Error: " << status << '\n';
+            CTM_LOG_ERROR("Failed to get event information for event type: ", (int)eventType, ". Error code: ", status);
             return;
         }
     }
@@ -182,13 +232,13 @@ void CTMProcessScreenEventTracing::WritePropInfoToMap(PEVENT_RECORD eventRecord,
                 {
                     status = TdhGetProperty(eventRecord, 0, nullptr, 1, &propertyData, sizeof(processId), reinterpret_cast<PBYTE>(&processId));
                     if (status != ERROR_SUCCESS)
-                        std::cerr << "Failed to get PID property from Kernel-Network. Error: " << status << '\n';
+                        CTM_LOG_ERROR("Failed to get PID property from Kernel-Network. Error code: ", status);
                 }
                 else if(wcscmp(propNameW, L"size") == 0)
                 {
                     status = TdhGetProperty(eventRecord, 0, nullptr, 1, &propertyData, sizeof(processUsage), reinterpret_cast<PBYTE>(&processUsage));
                     if (status != ERROR_SUCCESS)
-                        std::cerr << "Failed to get size property from Kernel-Network. Error: " << status << '\n';
+                        CTM_LOG_ERROR("Failed to get size property from Kernel-Network. Error code: ", status);
                 }
             }
             break;
@@ -199,7 +249,7 @@ void CTMProcessScreenEventTracing::WritePropInfoToMap(PEVENT_RECORD eventRecord,
                 {
                     status = TdhGetProperty(eventRecord, 0, nullptr, 1, &propertyData, sizeof(processUsage), reinterpret_cast<PBYTE>(&processUsage));
                     if (status != ERROR_SUCCESS)
-                        std::cerr << "Failed to get IOSize property from Kernel-File. Error: " << status << '\n';
+                        CTM_LOG_ERROR("Failed to get IOSize property from Kernel-File. Error code: ", status);
                 }
             }
             break;
