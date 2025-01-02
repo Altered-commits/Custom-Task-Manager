@@ -1,16 +1,16 @@
 #ifndef CTM_SETTINGS_MENU_HPP
 #define CTM_SETTINGS_MENU_HPP
 
+//Windows stuff
+#include <windows.h>
 //ImGui & ImPlot stuff
 #include "../../ImGUI/imgui.h"
 #include "../../ImPlot/implot.h"
 //My stuff
 #include "../ctm_base_state.h"
-#include "../ctm_state_manager.h"
+#include "../CTMGlobalManagers/ctm_state_manager.h"
 //Stdlib stuff
 #include <functional>
-//Windows stuff
-#include <WinUser.h>
 
 //'using' stuff makes my life easier
 using ComboBoxOnChangeFuncPtr = std::function<void(int)>;

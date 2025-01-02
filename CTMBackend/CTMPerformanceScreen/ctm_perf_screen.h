@@ -2,15 +2,15 @@
 #define CTM_PERF_MENU_HPP
 
 //Windows stuff
-#include <Windows.h>
+#include <windows.h>
 //ImGui stuff
 #include "../../ImGUI/imgui.h"
 #include "../../ImPlot/implot.h"
 //My stuff
+#include "CTMPerformanceCPUScreen/ctm_perf_cpu_screen.h"
 #include "../ctm_base_state.h"
 #include "../ctm_constants.h"
-#include "../ctm_state_manager.h"
-#include "CTMPerformanceCPUScreen/ctm_perf_cpu_screen.h"
+#include "../CTMGlobalManagers/ctm_state_manager.h"
 //Stdlib stuff
 #include <memory>
 

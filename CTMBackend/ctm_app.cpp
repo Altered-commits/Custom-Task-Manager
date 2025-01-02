@@ -287,11 +287,11 @@ void CTMApp::TryRemoveWindowsRoundedCorners()
 {
     if(CTMMisc::IsWindows10OrGreater())
     {
-        //Defining it on my own as GCC is not recognizing the enums properly, even when i include the dwmapi.h header file
+        //Defining it on my own as MinGW g++ is not recognizing the enums properly, even when i include the dwmapi.h header file
         DWORD DWMWAWindowCornerPreference = 33; //Referring to the enum value -> DWMWA_WINDOW_CORNER_PREFERENCE
         DWORD DWMWCPDoNotRound            = 1;  //Referring to the enum value -> DWMWCP_DONOTROUND
         if(FAILED(DwmSetWindowAttribute(windowHandle, DWMWAWindowCornerPreference, &DWMWCPDoNotRound, sizeof(DWMWCPDoNotRound))))
-            std::cerr << "Failed to make the window corners square, using the default window corner\n";
+            CTM_LOG_ERROR("Failed to disable the rounded window corners, using the default window corners.");
     }
 }
 

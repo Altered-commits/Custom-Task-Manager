@@ -16,6 +16,14 @@ CTMProcessScreen::CTMProcessScreen()
     if(!CTMConstructorInitEventTracingThread())
         return;
 
+    //While we are here, register a resource guard for cleaning up process handle map
+    resourceGuard.RegisterCleanupFunction(handleCleanupFunctionName, [this](){
+        for(auto &&[_, processHandle] : processIdToHandleMap)
+            CloseHandle(processHandle);
+    
+        processIdToHandleMap.clear();
+    });
+
     //Initialize the array beforehand so we get some content to display
     UpdateProcessInfo();
     SetInitialized(true);
@@ -64,11 +72,17 @@ bool CTMProcessScreen::CTMConstructorInitEventTracingThread()
         return false;
     }
 
+    //After we start the etw, most of the things can go wrong if god doesn't like you (yes you, the user of this program)
+    //Register a cleanup function to prevent this from happening
+    resourceGuard.RegisterCleanupFunction(etwCleanupFunctionName, [this](){
+        processUsageEventTracing.Stop();
+    });
+
     //Will indicate success or failure by getting the response from thread
     std::atomic<bool> initSuccess{true};
 
     processUsageEventTracingThread = std::thread([this, &initSuccess](){
-        //Now call ProcessEvents which blocks this thread until completed (if it did not fail that is)
+        //Now call ProcessEvents which should block this thread until it is stopped (if it did not fail that is)
         if (!processUsageEventTracing.ProcessEvents())
             initSuccess.store(false);
     });
@@ -77,11 +91,15 @@ bool CTMProcessScreen::CTMConstructorInitEventTracingThread()
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
     //If ProcessEvents failed, stop the event tracing entirely
-    if (!initSuccess.load())
+    if(!initSuccess.load())
     {
         CTM_LOG_ERROR("Failed to process events for event tracing.");
         processUsageEventTracing.Stop();
-        processUsageEventTracingThread.join(); //Ensure the thread has finished before returning
+        if(processUsageEventTracingThread.joinable())
+            processUsageEventTracingThread.join(); //Ensure the thread has finished before returning
+
+        //Unregister the cleanup function as all the cleaning work is already done above
+        resourceGuard.UnregisterCleanupFunction(etwCleanupFunctionName);
         return false;
     }
 
@@ -95,17 +113,23 @@ void CTMProcessScreen::CTMDestructorCleanEventTracingThread()
     if(processUsageEventTracingThread.joinable())
         processUsageEventTracingThread.join();
     
-    std::cout << "THREAD DESTRUCTOR\n";
+    //The process was successfully RAII destructed, no need for the cleanup function anymore, say bye bye to it
+    resourceGuard.UnregisterCleanupFunction(etwCleanupFunctionName);
+    
+    CTM_LOG_INFO("Event Tracing Thread destroyed successfully.");
 }
 
 void CTMProcessScreen::CTMDestructorCleanMappedHandles()
 {
     //Just call CloseHandle on every single entry of processIdToHandleMap
-    for (auto &&[_, processHandle] : processIdToHandleMap)
+    for(auto &&[_, processHandle] : processIdToHandleMap)
         CloseHandle(processHandle);
     
     //Reset the entire map now
     processIdToHandleMap.clear();
+    
+    //Well everything went well so... SAY BYE BYE TO CLEANUP FUNCTION
+    resourceGuard.UnregisterCleanupFunction(handleCleanupFunctionName);
 }
 
 //--------------------MAIN RENDER AND UPDATE FUNCTIONS--------------------

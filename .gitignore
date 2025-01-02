@@ -1,2 +1,5 @@
-/build
 /.vscode
+/BuildMSVC
+/BuildMinGW
+/Debug
+/Release

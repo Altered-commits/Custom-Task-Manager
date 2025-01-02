@@ -1,12 +1,18 @@
 #ifndef CTM_PROCESS_MENU_HPP
 #define CTM_PROCESS_MENU_HPP
 
+//Winapi stuff
+#include <windows.h>
+#include <Psapi.h>
+#include <winternl.h>
+#include <ntstatus.h>
 //ImGui stuff
 #include "../../ImGUI/imgui.h"
 //My stuff
+#include "ctm_process_screen_etw.h"
 #include "../ctm_base_state.h"
 #include "../ctm_logger.h"
-#include "ctm_process_screen_etw.h"
+#include "../CTMGlobalManagers/ctm_critical_resource_guard.h"
 //Stdlib stuff
 #include <vector>
 #include <string>
@@ -16,11 +22,6 @@
 #include <atomic>
 #include <variant>
 #include <algorithm>
-//Winapi stuff
-#include <windows.h>
-#include <Psapi.h>
-#include <winternl.h>
-#include <ntstatus.h>
 
 //These functions belong to NT DLL, useful for getting process information like memory usage, etc.
 typedef NTSTATUS(NTAPI* NtQueryInformationProcess_t)
@@ -192,10 +193,16 @@ private:
     FILETIME               ftPrevSysKernelTime = {},
                            ftPrevSysUserTime   = {};
 
+private: //ETW resource guard and its stuff
+    CTMCriticalResourceGuard& resourceGuard = CTMCriticalResourceGuard::GetInstance();
+    //Just a unique name for registering and unregistering function to resource guard
+    const char* etwCleanupFunctionName    = "CTMProcessScreen::ETWStopTracing";
+    const char* handleCleanupFunctionName = "CTMProcessScreen::CloseHandles";
+
 private: //Some stuff related to popup menu when u right click on a process group or a process itself
     ProcessTypeVariant processVariant  = (DWORD)0;
     const char*        popupStringId   = "ProcessOptionsPopup";
-    //We use bitset to compress all the boolean values into one bitset. Use an enum to make it understandable (making use of their values)
+    //We use bitset to compress all the boolean values into one bitset. Use an enum (making use of their values as integers) and access bits in bitset
     enum class PopupBitsetIndex { ShouldOpenPopup, IsProcessGroup, CanTerminate };
     std::uint8_t popupBitset = 0;
 

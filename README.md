@@ -3,15 +3,8 @@
 ### I am making this application to sort of try to mimic Windows 'Task Manager'. It uses Dear ImGui and ImPlot to render all the content of CTM (Both the Client and the Non-Client Region).
 
 # !!! Important !!!
-- Incase the app crashes unexpectedly, chances are the ETW listener may not have closed properly. Go to `cmd` and run the command:
-  ```bash
-  logman query -ets
-  ```
-  - Notice the `Data Collector Set` column. If you see something named as `CTM_ProcessScreen_ETWSession`, run this command to manually close the session:
-    ```bash
-    logman stop CTM_ProcessScreen_ETWSession -ets
-    ```
-- If you are trying to run this app and you have an Antivirus which checks the app before running it, this may bug out a little bit before it runs fine. Atleast it bugged out on my Avast Antivirus.
+- I compiled this application on MSVC and MinGW and it worked fine for me. I cannot guarantee that this will compile on other compilers properly but give it a shot.
+- If you are trying to run this app and you have an Antivirus which checks the app before running it, chances are, this may bug out a little bit before it runs fine. Atleast it bugged out on my Avast Antivirus.
 
 ## Features
 - **Single Instance App**: Only one instance of application is allowed at a time throughout system. If you try to open a new instance while the main instance is hung, then the main instance will be terminated and a new instance will be opened.
@@ -20,7 +13,7 @@
 - **Basic Settings Menu**: A menu where you can tinker with how window looks, default page, etc. More settings to be added in future.
 
 ## Requirements
-- C++17 or later (for the build system)
+- C++17 or later _(for the build system)_
 - DirectX 11
 - CMake
 - ImGui & ImPlot _(This project uses DirectX + Win32, so feel free to change `ImGUIBackend` and `ImGUI` folder to match your requirements)_
@@ -33,7 +26,7 @@ This project uses the following third-party libraries:
 
 ## How to use?
 - Clone the repository to your local machine.
-- Ensure you have **CMake** and a C++ compiler (e.g., `g++`) installed on your system. (I'm not really sure if it works with Visual Studio)
+- Ensure you have **CMake** and a C++ compiler (e.g., `MSVC`) installed on your system.
 - Build the project:
    - Navigate to the project directory.
    - Use the provided `CMakeLists.txt` to generate build files:
@@ -44,4 +37,4 @@ This project uses the following third-party libraries:
      ```bash
      cmake --build build
      ```
-- Run the executable (.exe file should be in root directory)
+- Run the executable _(.exe file should be in root directory if you are using MinGW, else it will be in Debug or Release directory for MSVC)_

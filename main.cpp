@@ -7,7 +7,15 @@
  * I dont really care if it breaks compatibility stuff.
  * But the reason why i'm still using 'OpenProcess' is to avoid using 'reserved' values as much as possible.
  * Rest idk if i'm doing stuff right, i am still new to winapi and windows app programming stuff.
+ * 
+ * 
+ * PS: I tried my absolute best to make sure this works in MSVC and MinGW (Tho some things like powerbase.h might not work for MinGW)
+ * 
+ * 
  */
+
+//Doing this makes 'SE_DEBUG_NAME' macro work without MinGW OR MSVC crying cuz it makes the 'TEXT' macro work, idk why
+#define UNICODE
 
 //My stuff
 #include "CTMBackend/ctm_app.h"
@@ -86,7 +94,7 @@ int main(void)
     }
 
     //Let's get the good stuff (top privileges)
-    if(!CTMMisc::EnableOrDisablePrivilege(L"SeDebugPrivilege")) //Having to type it instead of using SE_DEBUG_NAME cuz GCC is crying
+    if(!CTMMisc::EnableOrDisablePrivilege(SE_DEBUG_NAME))
         CTM_LOG_WARNING("Failed to enable 'SeDebugPrivilege'. Proceeding with less information.");
     else
         CTM_LOG_SUCCESS("Successfully enabled 'SeDebugPrivilege'... Good luck.");

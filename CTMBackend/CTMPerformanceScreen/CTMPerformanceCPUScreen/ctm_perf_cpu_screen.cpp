@@ -11,6 +11,10 @@ CTMPerformanceCPUScreen::CTMPerformanceCPUScreen()
     if(!CTMConstructorInitNTDLL())
         return;
 
+    //Get details like CPU name, base speed, etc from WMI. If can't, still allow initialization
+    if(!CTMConstructorQueryWMI())
+        CTM_LOG_WARNING("Failed to fully initialize details from WMI, expect 'Failed' values to exist in the table.");
+
     //Try getting entire CPU info, if we can't, return. Never let it initialize
     if(!CTMConstructorGetCPUInfo())
         return;
@@ -48,12 +52,96 @@ bool CTMPerformanceCPUScreen::CTMConstructorInitNTDLL()
     return true;
 }
 
+bool CTMPerformanceCPUScreen::CTMConstructorQueryWMI()
+{
+    //Use the namespace in which the ComPtr, CComVariant exists
+    //Basically like a unique_ptr but for COM
+    using Microsoft::WRL::ComPtr;
+
+    //Some important variables
+    HRESULT hres = S_OK;
+    ComPtr<IEnumWbemClassObject> pEnumerator;
+
+    //Get the WMI services which can be used to query stuff
+    auto pServices = wmiManager.GetServices();
+    //Check if its nullptr or not, if it is nullptr, then wmi wasnt initialized properly
+    WMI_QUERYING_START_CONDITION(!pServices)
+        WMI_QUERYING_FAILED_PURE_ERROR("WMI failed to initialize.")
+    WMI_QUERYING_END_CONDITION()
+
+    //It isn't nullptr, query whatever u need
+    hres = pServices->ExecQuery(
+            bstr_t{L"WQL"},                                        //Query language type. WQL is acronym for WMI Query Language
+            bstr_t{L"SELECT Name, Manufacturer, MaxClockSpeed FROM Win32_Processor"}, //Query to get CPU name, Max clock speed and Manufacturer
+            WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, //Check: https://learn.microsoft.com/en-us/windows/win32/api/wbemcli/nf-wbemcli-iwbemservices-execquery#parameters
+            NULL,                                                  //Context can be NULL
+            pEnumerator.GetAddressOf()                             //Pointer to data in short, just need to enumerate thru the data
+        );
+    
+    //Just in case, cuz i am not using resource guard. So i can't really afford access violations
+    WMI_QUERYING_START_CONDITION(FAILED(hres) || pEnumerator == nullptr)
+        WMI_QUERYING_FAILED_PURE_ERROR("Failed to query WMI for processor info or Enumerator returned was nullptr.")        
+    WMI_QUERYING_END_CONDITION()
+
+    //Now we need to process the query result
+    ComPtr<IWbemClassObject> pClassObject;
+    ULONG uReturn = 0;
+
+    //Loop through the results though there should only be one result for Win32_Processor
+    while(pEnumerator)
+    {
+        hres = pEnumerator->Next(WBEM_INFINITE, 1, pClassObject.GetAddressOf(), &uReturn);
+
+        //No results were found, break outta loop
+        if(uReturn == 0)
+            break;
+        
+        //Be absolutely sure...
+        WMI_QUERYING_START_CONDITION(FAILED(hres) || pClassObject == nullptr)
+            WMI_QUERYING_FAILED_PURE_ERROR("Failed to go to next entry on WMI enumerator or class object is nullptr.")
+        WMI_QUERYING_END_CONDITION()
+
+        //Initialize variants, this is where we will first store our data
+        CTMVariant cpuName, vendorName, maxClockSpeed;
+
+        //1) CPU Name
+        hres = pClassObject->Get(L"Name", 0, &cpuName, NULL, NULL);
+        WMI_QUERYING_START_CONDITION(FAILED(hres) || cpuName.vt != VT_BSTR || !cpuName.bstrVal)
+            WMI_QUERYING_FAILED_BUFFER_ERROR(cpuNameBuffer, "Failed to get CPU Name.")
+        WMI_QUERYING_END_CONDITION()
+
+        //Succeeded in getting the CPU name, copy it to 'cpuNameBuffer', leave the last byte just in case
+        WMI_QUERYING_TRY_WSTOS(cpuNameBuffer, cpuName.bstrVal, "Failed to convert CPU Name to multibyte string.")
+
+        //2) Vendor Name
+        hres = pClassObject->Get(L"Manufacturer", 0, &vendorName, NULL, NULL);
+        WMI_QUERYING_START_CONDITION(FAILED(hres) || vendorName.vt != VT_BSTR || !vendorName.bstrVal)
+            WMI_QUERYING_FAILED_BUFFER_ERROR(vendorNameBuffer, "Failed to get CPU Vendor Name.")
+        WMI_QUERYING_END_CONDITION()
+
+        //Succeeded in getting the Vendor name, copy it to 'vendorNameBuffer', leave the last byte just in case
+        WMI_QUERYING_TRY_WSTOS(vendorNameBuffer, vendorName.bstrVal, "Failed to convert Vendor Name to multibyte string.")
+
+        //3) Base Speed
+        hres = pClassObject->Get(L"MaxClockSpeed", 0, &maxClockSpeed, NULL, NULL);
+        WMI_QUERYING_START_CONDITION(FAILED(hres) || maxClockSpeed.vt != VT_I4 || maxClockSpeed.intVal <= 0)
+            metricsVector[static_cast<std::size_t>(MetricsVectorIndex::MaxClockSpeed)].second = "Failed";
+            WMI_QUERYING_FAILED_PURE_ERROR("Failed to get CPU Max Clock Speed");
+        WMI_QUERYING_END_CONDITION()
+        
+        //Succeeded in getting the Max Clock Speed, copy it to metricsVector and move on
+        metricsVector[static_cast<std::size_t>(MetricsVectorIndex::MaxClockSpeed)].second = ((double)maxClockSpeed.intVal / 1000.0);
+
+        //Quite useless to do since its only one iteration, but let it stay here for now
+        pClassObject.Reset();
+    }
+
+    //Enumerator will be auto released as we using ComPtr
+    return true;
+}
+
 bool CTMPerformanceCPUScreen::CTMConstructorGetCPUInfo()
 {
-    //If we failed to get CPU name, return
-    if(!CTMConstructorGetCPUInfoFromRegistry())
-        return false;
-    
     //Initialize system information
     SYSTEM_INFO sysInfo = { 0 };
     GetSystemInfo(&sysInfo);
@@ -104,88 +192,6 @@ bool CTMPerformanceCPUScreen::CTMConstructorGetCPUInfo()
 
     //Process rest of the CPU info
     return CTMConstructorGetCPULogicalInfo();
-}
-
-bool CTMPerformanceCPUScreen::CTMConstructorGetCPUInfoFromRegistry()
-{
-    //Get Registry cuz HKEY_LOCAL_MACHINE has the cpu name
-    HKEY hKey;
-    LSTATUS result = RegOpenKeyExA(HKEY_LOCAL_MACHINE, "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0", 0, KEY_READ, &hKey);
-    if(result != ERROR_SUCCESS)
-    {
-        CTM_LOG_ERROR("Failed to open registry key 'HKEY_LOCAL_MACHINE' for reading CPU name and base speed. Error code: ", result);
-        return false;
-    }
-
-    //Get the CPU name... atleast try to get it
-    if(!CTMConstructorGetCPUName(hKey))
-    {
-        RegCloseKey(hKey);
-        return false;
-    }
-
-    //Get the base speed in MHz, we will convert it to GHz
-    DWORD type          = 0;
-    DWORD baseSpeed     = 0;
-    DWORD baseSpeedSize = sizeof(baseSpeed);
-    result = RegQueryValueExA(hKey, "~MHz", nullptr, &type, reinterpret_cast<LPBYTE>(&baseSpeed), &baseSpeedSize);
-    if(result != ERROR_SUCCESS || type != REG_DWORD)
-    {
-        CTM_LOG_ERROR("Failed to retrieve ~MHz (Base Speed). Error code: ", result);
-        RegCloseKey(hKey);
-        return false;
-    }
-    //Add it manually to the metricsVector, converting it into GHz
-    metricsVector[static_cast<std::size_t>(MetricsVectorIndex::BaseSpeed)].second = baseSpeed / 1000.0;
-
-    //Finally close the registry
-    RegCloseKey(hKey);
-    return true;
-}
-
-bool CTMPerformanceCPUScreen::CTMConstructorGetCPUName(HKEY hKey)
-{
-    DWORD type = 0;
-    DWORD cpuNameBufferSize = 0;
-
-    LSTATUS result = RegQueryValueExA(hKey, "ProcessorNameString", nullptr, &type, nullptr, &cpuNameBufferSize);
-    if(result != ERROR_SUCCESS || type != REG_SZ)
-    {
-        CTM_LOG_ERROR("Failed to query size of 'ProcessorNameString'. Error code: ", result);
-        return false;
-    }
-
-    //Give it a big enough buffer, the value is given by RegQueryValueExA
-    std::unique_ptr<BYTE[]> cpuNameBufferPtr = std::make_unique<BYTE[]>(cpuNameBufferSize);
-
-    //Try getting CPU name
-    result = RegQueryValueExA(hKey, "ProcessorNameString", nullptr, &type, cpuNameBufferPtr.get(), &cpuNameBufferSize);
-    if(result != ERROR_SUCCESS || type != REG_SZ)
-    {
-        CTM_LOG_ERROR("Failed to retrieve 'ProcessorNameString'. Error code: ", result);
-        return false;
-    }
-
-    //We were able to retrieve it. Now heres the thing, if the cpuNameBufferSize is greater than sizeof(cpuNameBuffer), we add '...' at the end
-    //Else we just copy it as is with null terminator at the end
-    constexpr DWORD maxBufferSize = sizeof(cpuNameBuffer);
-    if(cpuNameBufferSize > maxBufferSize)
-    {
-        //Copy name and append "..."
-        std::memcpy(cpuNameBuffer, cpuNameBufferPtr.get(), maxBufferSize - 4);
-        cpuNameBuffer[maxBufferSize - 4] = '.';
-        cpuNameBuffer[maxBufferSize - 3] = '.';
-        cpuNameBuffer[maxBufferSize - 2] = '.';
-        cpuNameBuffer[maxBufferSize - 1] = '\0';
-    }
-    else
-    {
-        //Copy full name and ensure we null terminate it
-        std::memcpy(cpuNameBuffer, cpuNameBufferPtr.get(), cpuNameBufferSize);
-        cpuNameBuffer[std::min(cpuNameBufferSize, maxBufferSize - 1)] = '\0';
-    }
-
-    return true;
 }
 
 bool CTMPerformanceCPUScreen::CTMConstructorGetCPULogicalInfo()
@@ -356,7 +362,7 @@ void CTMPerformanceCPUScreen::RenderCPUStatistics()
                 {
                     if(i == static_cast<std::size_t>(MetricsVectorIndex::Usage))
                         ImGui::Text("%.2lf%%", arg);
-                    else if(i == static_cast<std::size_t>(MetricsVectorIndex::BaseSpeed))
+                    else if(i == static_cast<std::size_t>(MetricsVectorIndex::MaxClockSpeed))
                         ImGui::Text("%.2lfGHz", arg);
                     else
                         ImGui::Text("%.2lfMB", arg);

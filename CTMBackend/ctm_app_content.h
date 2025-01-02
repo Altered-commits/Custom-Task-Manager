@@ -1,17 +1,19 @@
 #ifndef CTM_APP_CONTENT_HPP
 #define CTM_APP_CONTENT_HPP
 
+//Windows stuff
+#include <windows.h>
 //ImGui stuff
 #include "../ImGUI/imgui.h"
-//My stuff
-#include "ctm_constants.h"
-#include "ctm_state_manager.h"
-#include "CTMPerformanceScreen/ctm_perf_screen.h"
-#include "CTMProcessScreen/ctm_process_screen.h"
-#include "CTMSettingsScreen/ctm_settings_screen.h"
 //Stdlib stuff
 #include <functional>
 #include <memory>
+//My stuff
+#include "ctm_constants.h"
+#include "CTMGlobalManagers/ctm_state_manager.h"
+#include "CTMPerformanceScreen/ctm_perf_screen.h"
+#include "CTMProcessScreen/ctm_process_screen.h"
+#include "CTMSettingsScreen/ctm_settings_screen.h"
 
 class CTMAppContent
 {

@@ -1,7 +1,7 @@
 #ifndef CTM_PROCESS_MENU_ETW_HPP
 #define CTM_PROCESS_MENU_ETW_HPP
 
-//Windows and etw stuff
+//Windows stuff
 #include <windows.h>
 #include <evntrace.h>
 #include <tdh.h>

@@ -1,9 +1,5 @@
 #include "ctm_misc.h"
 
-/*
- * NOTE: All of them are static functions
- */
-
 //--------------------ADMIN STUFF--------------------
 bool CTMMisc::EnableOrDisablePrivilege(LPCWSTR privilegeName, bool shouldEnablePrivilege)
 {
@@ -108,9 +104,9 @@ bool CTMMisc::IsUserAdmin()
 }
 
 //--------------------MUTEX STUFF--------------------
-//Trying to terminate hung process and regaining mutex ownership
 bool CTMMisc::TerminateAndAcquireMutexOwnership(HWND hWnd, HANDLE hMutex)
 {
+    //Trying to terminate hung process and regaining mutex ownership
     DWORD  processId;
     HANDLE hProcess;
 

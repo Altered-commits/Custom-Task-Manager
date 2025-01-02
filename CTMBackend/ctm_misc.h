@@ -1,6 +1,9 @@
 /*
  * I did not want to clutter main.cpp file, hence i created this file.
  * This just stores all the functions / classes / defines which were once written in main.cpp and will further be written.
+ * BUT...
+ * This just happened to also store stuff used by other classes, which i wasn't able to seperate to other files.
+ * Hence this file, in reality, contains all the miscellaneous stuff.
  */
 #ifndef CTM_MISCELLANEOUS_HPP
 #define CTM_MISCELLANEOUS_HPP

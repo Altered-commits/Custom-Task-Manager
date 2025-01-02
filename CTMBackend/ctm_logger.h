@@ -1,9 +1,13 @@
 #ifndef CTM_LOGGER_HPP
 #define CTM_LOGGER_HPP
 
+//Stdlib stuff
 #include <iostream>
 #include <chrono>
 #include <iomanip>
+
+//MSVC warnings forcing me to use _s function, NOPE, i handle stuff in my own way so no thanks
+#pragma warning(disable:4996)
 
 enum class CTMLogLevel
 {
@@ -59,7 +63,8 @@ private:
 #define CTM_LOG_INFO(...)    CTMLogger::Log(CTMLogLevel::Info,    '\n', __VA_ARGS__)
 
 //Macros without newline
-#define CTM_LOG_ERROR_NONL(...) CTMLogger::Log(CTMLogLevel::Error, '\0', __VA_ARGS__)
+#define CTM_LOG_ERROR_NONL(...)   CTMLogger::Log(CTMLogLevel::Error,   '\0', __VA_ARGS__)
+#define CTM_LOG_WARNING_NONL(...) CTMLogger::Log(CTMLogLevel::Warning, '\0', __VA_ARGS__)
 
 //Macros outputting pure text
 #define CTM_LOG_TEXT(...) CTMLogger::LogPureText(__VA_ARGS__)

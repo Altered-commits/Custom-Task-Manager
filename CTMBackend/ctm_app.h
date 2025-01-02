@@ -1,6 +1,11 @@
 #ifndef CTM_APP_HPP
 #define CTM_APP_HPP
 
+//Windows stuff
+#include <windows.h>
+#include <d3d11.h>
+#include <windowsx.h>
+#include <dwmapi.h>
 //ImGui stuff
 #include "../ImGUI/imgui.h"
 #include "../ImGUIBackend/imgui_impl_win32.h"
@@ -8,12 +13,8 @@
 //My stuff
 #include "ctm_constants.h"
 #include "ctm_app_content.h"
-#include "ctm_state_manager.h"
+#include "CTMGlobalManagers/ctm_state_manager.h"
 #include "ctm_misc.h"
-//Windows stuff
-#include <d3d11.h>
-#include <windowsx.h>
-#include <dwmapi.h>
 
 //Forward declare as told by imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);

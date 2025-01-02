@@ -11,7 +11,7 @@
 //Copied it from ImPlot -> implot_demo.cpp
 struct ScrollingBuffer
 {
-    std::vector<ImVec2> Data;
+    std::vector<ImVec2> Data = { {0, 0} }; //Have a value initially, or u would be accessing value out of bounds INITIALLY ofc
     int                 MaxSize;
     int                 Offset;
 
