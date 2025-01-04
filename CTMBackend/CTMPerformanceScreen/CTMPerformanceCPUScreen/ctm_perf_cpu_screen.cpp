@@ -6,6 +6,7 @@
 
 //Equivalent to OnInit function
 CTMPerformanceCPUScreen::CTMPerformanceCPUScreen()
+    : systemInformationBuffer(systemInformationBufferSize)
 {
     //Try getting 'NtQuerySystemInformation' function from ntdll.dll, if can't, don't let this class initialize
     if(!CTMConstructorInitNTDLL())
@@ -72,7 +73,7 @@ bool CTMPerformanceCPUScreen::CTMConstructorQueryWMI()
     //It isn't nullptr, query whatever u need
     hres = pServices->ExecQuery(
             bstr_t{L"WQL"},                                        //Query language type. WQL is acronym for WMI Query Language
-            bstr_t{L"SELECT Name, Manufacturer, MaxClockSpeed FROM Win32_Processor"}, //Query to get CPU name, Max clock speed and Manufacturer
+            bstr_t{L"SELECT Name, Manufacturer, VirtualizationFirmwareEnabled, MaxClockSpeed FROM Win32_Processor"}, //Query to get CPU name, Max clock speed and Manufacturer
             WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, //Check: https://learn.microsoft.com/en-us/windows/win32/api/wbemcli/nf-wbemcli-iwbemservices-execquery#parameters
             NULL,                                                  //Context can be NULL
             pEnumerator.GetAddressOf()                             //Pointer to data in short, just need to enumerate thru the data
@@ -102,31 +103,40 @@ bool CTMPerformanceCPUScreen::CTMConstructorQueryWMI()
         WMI_QUERYING_END_CONDITION()
 
         //Initialize variants, this is where we will first store our data
-        CTMVariant cpuName, vendorName, maxClockSpeed;
+        CTMVariant cpuName, vendorName, virtEnabled, maxClockSpeed;
 
         //1) CPU Name
         hres = pClassObject->Get(L"Name", 0, &cpuName, NULL, NULL);
         WMI_QUERYING_START_CONDITION(FAILED(hres) || cpuName.vt != VT_BSTR || !cpuName.bstrVal)
             WMI_QUERYING_FAILED_BUFFER_ERROR(cpuNameBuffer, "Failed to get CPU Name.")
+        WMI_QUERYING_ELSE_CONDITION()
+            //Succeeded in getting the CPU name, copy it to 'cpuNameBuffer', leave the last byte just in case
+            WMI_QUERYING_TRY_WSTOS(cpuNameBuffer, cpuName.bstrVal, "Failed to convert CPU Name to multibyte string.")
         WMI_QUERYING_END_CONDITION()
-
-        //Succeeded in getting the CPU name, copy it to 'cpuNameBuffer', leave the last byte just in case
-        WMI_QUERYING_TRY_WSTOS(cpuNameBuffer, cpuName.bstrVal, "Failed to convert CPU Name to multibyte string.")
 
         //2) Vendor Name
         hres = pClassObject->Get(L"Manufacturer", 0, &vendorName, NULL, NULL);
         WMI_QUERYING_START_CONDITION(FAILED(hres) || vendorName.vt != VT_BSTR || !vendorName.bstrVal)
             WMI_QUERYING_FAILED_BUFFER_ERROR(vendorNameBuffer, "Failed to get CPU Vendor Name.")
+        WMI_QUERYING_ELSE_CONDITION()
+            //Succeeded in getting the Vendor name, copy it to 'vendorNameBuffer', leave the last byte just in case
+            WMI_QUERYING_TRY_WSTOS(vendorNameBuffer, vendorName.bstrVal, "Failed to convert Vendor Name to multibyte string.")
         WMI_QUERYING_END_CONDITION()
 
-        //Succeeded in getting the Vendor name, copy it to 'vendorNameBuffer', leave the last byte just in case
-        WMI_QUERYING_TRY_WSTOS(vendorNameBuffer, vendorName.bstrVal, "Failed to convert Vendor Name to multibyte string.")
+        //3) Virtualization Enabled
+        hres = pClassObject->Get(L"VirtualizationFirmwareEnabled", 0, &virtEnabled, NULL, NULL);
+        WMI_QUERYING_START_CONDITION(FAILED(hres) || virtEnabled.vt != VT_BOOL)
+            WMI_QUERYING_FAILED_BUFFER_ERROR(virtEnabledBuffer, "Failed to get status of Virtualization Firmware.")
+        WMI_QUERYING_ELSE_CONDITION()
+            //Succeeded in getting the Virtualization Enabled, its a bool value btw so just copy our own strings to the buffer
+            std::strncpy(virtEnabledBuffer, virtEnabled.boolVal ? "True" : "False", sizeof(virtEnabledBuffer) - 1);
+        WMI_QUERYING_END_CONDITION()
 
-        //3) Base Speed
+        //4) Base Speed
         hres = pClassObject->Get(L"MaxClockSpeed", 0, &maxClockSpeed, NULL, NULL);
         WMI_QUERYING_START_CONDITION(FAILED(hres) || maxClockSpeed.vt != VT_I4 || maxClockSpeed.intVal <= 0)
             metricsVector[static_cast<std::size_t>(MetricsVectorIndex::MaxClockSpeed)].second = "Failed";
-            WMI_QUERYING_FAILED_PURE_ERROR("Failed to get CPU Max Clock Speed");
+            WMI_QUERYING_FAILED_PURE_ERROR("Failed to get CPU Max Clock Speed")
         WMI_QUERYING_END_CONDITION()
         
         //Succeeded in getting the Max Clock Speed, copy it to metricsVector and move on
@@ -299,7 +309,7 @@ void CTMPerformanceCPUScreen::OnRender()
     PlotUsageGraph("Overall CPU Usage (over 60 Seconds)", {-1, 300}, 0.0f, 100.0f, { 0.075f, 0.792f, 0.988f, 1.0f });
     ImGui::TextUnformatted("0%");
 
-    //Give some spacing before displaying CPU Info
+    //Give some spacing vertically before displaying CPU Info
     ImGui::Dummy({-1.0f, 15.0f});
 
     //Add some padding to the frame (see the collapsing header, see the blank space around the text)
@@ -310,10 +320,12 @@ void CTMPerformanceCPUScreen::OnRender()
     if(isHeatmapHeaderExpanded)
         RenderLogicalProcessorHeatmap();
 
-    //Even more spacing
+    //Even more spacing vertically
     ImGui::Dummy({-1.0f, 5.0f});
 
-    if(ImGui::CollapsingHeader("CPU Statistics"))
+    //Create a collapsable header containing our CPU statistics
+    isStatisticsHeaderExpanded = ImGui::CollapsingHeader("CPU Statistics");
+    if(isStatisticsHeaderExpanded)
         RenderCPUStatistics();
     
     ImGui::PopStyleVar();
@@ -331,6 +343,10 @@ void CTMPerformanceCPUScreen::OnUpdate()
     //Update per logical processor information if 'isHeatmapHeaderExpanded' is true
     if(isHeatmapHeaderExpanded)
         UpdatePerLogicalProcessorInfo();
+    
+    //Also only update process counters if 'isStatisticsHeaderExpanded' is true
+    if(isStatisticsHeaderExpanded)
+        UpdateProcessCounters();
 }
 
 //--------------------RENDER FUNCTIONS--------------------
@@ -499,4 +515,56 @@ void CTMPerformanceCPUScreen::UpdatePerLogicalProcessorInfo()
     
     //Finally save the current information to previous information.
     prevProcessorPerformanceInfo = currProcessorPerformanceInfo;
+}
+
+void CTMPerformanceCPUScreen::UpdateProcessCounters()
+{
+    NTSTATUS status;
+    //Keep resizing as long as the buffer isn't big enough
+    do
+    {
+        //If you are wondering what this does, it pretty much gives u a big array of 'SYSTEM_PROCESS_INFORMATION' structs
+        status = NtQuerySystemInformation(SystemProcessInformation, systemInformationBuffer.data(),
+                                            systemInformationBuffer.size(), &systemInformationBufferSize);
+
+        if(status == STATUS_INFO_LENGTH_MISMATCH)
+            systemInformationBuffer.resize(systemInformationBufferSize);
+    }
+    while (status == STATUS_INFO_LENGTH_MISMATCH);
+
+    if(status != STATUS_SUCCESS)
+    {
+        CTM_LOG_ERROR("Failed to collect process, thread and handle information for system. Error code: ", status);
+        return;
+    }
+
+    //We succeeded in collecting information, go ahead and update these variables first
+    ULONG totalProcesses = 0, totalHandles = 0, totalThreads = 0;
+
+    //Now update the current information by looping over the data
+    PSYSTEM_PROCESS_INFORMATION systemInformationPtr = reinterpret_cast<PSYSTEM_PROCESS_INFORMATION>(systemInformationBuffer.data());
+
+    while(systemInformationPtr)
+    {
+        totalProcesses++;
+        totalHandles += systemInformationPtr->HandleCount;
+        totalThreads += systemInformationPtr->NumberOfThreads;
+
+        //No more entries so break outta loop
+        if(systemInformationPtr->NextEntryOffset == 0)
+            break;
+        
+        //More entries, move the pointer ahead by the specified bytes
+        systemInformationPtr = reinterpret_cast<PSYSTEM_PROCESS_INFORMATION>(
+                                    reinterpret_cast<BYTE*>(systemInformationPtr) + systemInformationPtr->NextEntryOffset
+                                );
+    }
+
+    //Just simple throw those variables to the metricsVector
+    //1) Total Processes
+    metricsVector[static_cast<std::size_t>(MetricsVectorIndex::TotalProcesses)].second = totalProcesses;
+    //2) Total Handles
+    metricsVector[static_cast<std::size_t>(MetricsVectorIndex::TotalHandles)].second = totalHandles;
+    //3) Total Threads
+    metricsVector[static_cast<std::size_t>(MetricsVectorIndex::TotalThreads)].second = totalThreads;
 }

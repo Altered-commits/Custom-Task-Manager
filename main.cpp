@@ -9,7 +9,7 @@
  * Rest idk if i'm doing stuff right, i am still new to winapi and windows app programming stuff.
  * 
  * 
- * PS: I tried my absolute best to make sure this works in MSVC and MinGW (Tho some things like powerbase.h might not work for MinGW)
+ * PS: I tried my absolute best to make sure this works in MSVC and MinGW.
  * 
  * 
  */
@@ -97,7 +97,7 @@ int main(void)
     if(!CTMMisc::EnableOrDisablePrivilege(SE_DEBUG_NAME))
         CTM_LOG_WARNING("Failed to enable 'SeDebugPrivilege'. Proceeding with less information.");
     else
-        CTM_LOG_SUCCESS("Successfully enabled 'SeDebugPrivilege'... Good luck.");
+        CTM_LOG_SUCCESS("Successfully enabled 'SeDebugPrivilege' :)");
 
     //The actual application
     CTMApp app;

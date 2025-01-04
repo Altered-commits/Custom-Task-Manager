@@ -26,7 +26,7 @@ void CTMCriticalResourceGuard::UnregisterCleanupFunction(const char *fnName)
 //--------------------CALLBACK FUNCTIONS--------------------
 LONG CTMCriticalResourceGuard::CTMUnhandledExceptionFilter(EXCEPTION_POINTERS *exceptionInfo)
 {
-    CTM_LOG_WARNING("Unhandled exception caught.");
+    CTM_LOG_WARNING_NONL("Unhandled exception caught.");
     
     if(exceptionInfo && exceptionInfo->ExceptionRecord)
         CTM_LOG_TEXT(" Exception code: 0x", exceptionInfo->ExceptionRecord->ExceptionCode);

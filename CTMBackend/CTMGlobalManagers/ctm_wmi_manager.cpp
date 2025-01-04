@@ -26,7 +26,7 @@ CTMWMIManager::~CTMWMIManager()
     if(!hasCleanedUpResources)
     {
         //Heres the thing, normally ComPtr should destruct themselves. But when i don't do this manually, i get 0xC0000005 violation.
-        //In short, i get access violation, if figured this out, pls let me know
+        //In short, i get access violation, if you (yes you the reader of this) figured this out, pls let me know
         pLocator.Reset();
         pServices.Reset();
         CoUninitialize();

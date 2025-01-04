@@ -42,7 +42,7 @@ private: //Functions to initialize WMI and COM
 private: //Resource guard
     CTMCriticalResourceGuard& resourceGuard = CTMCriticalResourceGuard::GetInstance();
     //Just a unique name for cleanup function
-    const char* wmiCleanupFunctionName = "CTMWMIManager::CleanupCOM";
+    const char* wmiCleanupFunctionName = "CTMWMIManager::CleanupCOMAndWMI";
     //Just to make sure we are not cleaning up twice
     bool hasCleanedUpResources = false;
 

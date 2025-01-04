@@ -358,13 +358,14 @@ void CTMProcessScreen::UpdateProcessInfo()
     //Resize buffer as long as we get an error, aka the buffer isnt big enough
     do
     {
+        //If you are wondering what this does, it pretty much gives u a big array of 'SYSTEM_PROCESS_INFORMATION' structs
         status = NtQuerySystemInformation(SystemProcessInformation, processInfoBuffer.data(),
                                                     processInfoBuffer.size(), &processInfoBufferSize);
 
         if(status == STATUS_INFO_LENGTH_MISMATCH)
             processInfoBuffer.resize(processInfoBufferSize);
     }
-    while (status == STATUS_INFO_LENGTH_MISMATCH);
+    while(status == STATUS_INFO_LENGTH_MISMATCH);
 
     //Do the do
     if(status == STATUS_SUCCESS)
@@ -426,7 +427,7 @@ void CTMProcessScreen::UpdateProcessInfo()
         RemoveStaleEntries();
     }
     else
-        CTM_LOG_ERROR("Failed to get system process information.");
+        CTM_LOG_ERROR("Failed to get system process information. Error code: ", status);
 }
 
 void CTMProcessScreen::UpdateProcessMapWithProcessHandle(HANDLE hProcess, DWORD processId, const std::string& processName,
