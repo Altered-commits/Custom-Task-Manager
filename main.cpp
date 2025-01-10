@@ -93,7 +93,7 @@ int main(void)
             CTM_LOG_WARNING("Failed to find an application instance, allowing this instance to initialize UNDER the assumption that no other instance exists.");
     }
 
-    //Let's get the good stuff (top privileges)
+    //Let's get the good stuff
     if(!CTMMisc::EnableOrDisablePrivilege(SE_DEBUG_NAME))
         CTM_LOG_WARNING("Failed to enable 'SeDebugPrivilege'. Proceeding with less information.");
     else

@@ -49,12 +49,12 @@ CTMAppErrorCodes CTMApp::Initialize()
 
 void CTMApp::Run()
 {
-    while (!done)
+    while(!done)
     {
         HandleMessages();
 
         //If the user wants to quit, QUIT
-        if (done)
+        if(done)
             break;
 
         if(HandleOcclusion())
@@ -171,7 +171,7 @@ void CTMApp::RenderNCRegionButton(const char* buttonLabel, const ImVec2& buttonS
     //For NC Buttons, we check for the hit test in WndProc
     ImGui::Button(buttonLabel, buttonSize);
 
-    if (ImGui::IsItemHovered())
+    if(ImGui::IsItemHovered())
         NCRegionButtonState = newButtonState;
 
     ImGui::PopStyleColor(3);
@@ -293,6 +293,8 @@ void CTMApp::TryRemoveWindowsRoundedCorners()
         if(FAILED(DwmSetWindowAttribute(windowHandle, DWMWAWindowCornerPreference, &DWMWCPDoNotRound, sizeof(DWMWCPDoNotRound))))
             CTM_LOG_ERROR("Failed to disable the rounded window corners, using the default window corners.");
     }
+    else
+        CTM_LOG_WARNING("Current Windows version is less than 10, using default window corners.");
 }
 
 //----------D3D Stuff----------

@@ -8,6 +8,7 @@
 #include "../../ImPlot/implot.h"
 //My stuff
 #include "CTMPerformanceCPUScreen/ctm_perf_cpu_screen.h"
+#include "CTMPerformanceMEMScreen/ctm_perf_mem_screen.h"
 #include "../ctm_base_state.h"
 #include "../ctm_constants.h"
 #include "../CTMGlobalManagers/ctm_state_manager.h"

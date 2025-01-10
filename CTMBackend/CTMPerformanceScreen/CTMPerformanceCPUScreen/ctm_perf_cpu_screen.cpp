@@ -55,34 +55,15 @@ bool CTMPerformanceCPUScreen::CTMConstructorInitNTDLL()
 
 bool CTMPerformanceCPUScreen::CTMConstructorQueryWMI()
 {
-    //Use the namespace in which the ComPtr, CComVariant exists
-    //Basically like a unique_ptr but for COM
-    using Microsoft::WRL::ComPtr;
+    //Query what you need from WMI
+    ComPtr<IEnumWbemClassObject> pEnumerator = wmiManager.GetEnumeratorFromQuery(
+        L"SELECT Name, Manufacturer, VirtualizationFirmwareEnabled, MaxClockSpeed FROM Win32_Processor"
+    );
 
-    //Some important variables
-    HRESULT hres = S_OK;
-    ComPtr<IEnumWbemClassObject> pEnumerator;
-
-    //Get the WMI services which can be used to query stuff
-    auto pServices = wmiManager.GetServices();
-    //Check if its nullptr or not, if it is nullptr, then wmi wasnt initialized properly
-    WMI_QUERYING_START_CONDITION(!pServices)
-        WMI_QUERYING_FAILED_PURE_ERROR("WMI failed to initialize.")
-    WMI_QUERYING_END_CONDITION()
-
-    //It isn't nullptr, query whatever u need
-    hres = pServices->ExecQuery(
-            bstr_t{L"WQL"},                                        //Query language type. WQL is acronym for WMI Query Language
-            bstr_t{L"SELECT Name, Manufacturer, VirtualizationFirmwareEnabled, MaxClockSpeed FROM Win32_Processor"}, //Query to get CPU name, Max clock speed and Manufacturer
-            WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, //Check: https://learn.microsoft.com/en-us/windows/win32/api/wbemcli/nf-wbemcli-iwbemservices-execquery#parameters
-            NULL,                                                  //Context can be NULL
-            pEnumerator.GetAddressOf()                             //Pointer to data in short, just need to enumerate thru the data
-        );
-    
-    //Just in case, cuz i am not using resource guard. So i can't really afford access violations
-    WMI_QUERYING_START_CONDITION(FAILED(hres) || pEnumerator == nullptr)
-        WMI_QUERYING_FAILED_PURE_ERROR("Failed to query WMI for processor info or Enumerator returned was nullptr.")        
-    WMI_QUERYING_END_CONDITION()
+    //If pEnumerator is nullptr, then query failed. No need to print error as 'GetEnumeratorFromQuery' already does it
+    CTM_WMI_START_CONDITION(pEnumerator == nullptr)
+        return false;
+    CTM_WMI_END_CONDITION()
 
     //Now we need to process the query result
     ComPtr<IWbemClassObject> pClassObject;
@@ -91,57 +72,58 @@ bool CTMPerformanceCPUScreen::CTMConstructorQueryWMI()
     //Loop through the results though there should only be one result for Win32_Processor
     while(pEnumerator)
     {
-        hres = pEnumerator->Next(WBEM_INFINITE, 1, pClassObject.GetAddressOf(), &uReturn);
+        HRESULT hres = pEnumerator->Next(WBEM_INFINITE, 1, pClassObject.GetAddressOf(), &uReturn);
 
         //No results were found, break outta loop
         if(uReturn == 0)
             break;
         
         //Be absolutely sure...
-        WMI_QUERYING_START_CONDITION(FAILED(hres) || pClassObject == nullptr)
-            WMI_QUERYING_FAILED_PURE_ERROR("Failed to go to next entry on WMI enumerator or class object is nullptr.")
-        WMI_QUERYING_END_CONDITION()
+        CTM_WMI_START_CONDITION(FAILED(hres) || pClassObject == nullptr)
+            CTM_WMI_ERROR_RET("Failed to go to next entry on WMI enumerator or class object is nullptr.")
+        CTM_WMI_END_CONDITION()
 
         //Initialize variants, this is where we will first store our data
         CTMVariant cpuName, vendorName, virtEnabled, maxClockSpeed;
 
         //1) CPU Name
         hres = pClassObject->Get(L"Name", 0, &cpuName, NULL, NULL);
-        WMI_QUERYING_START_CONDITION(FAILED(hres) || cpuName.vt != VT_BSTR || !cpuName.bstrVal)
-            WMI_QUERYING_FAILED_BUFFER_ERROR(cpuNameBuffer, "Failed to get CPU Name.")
-        WMI_QUERYING_ELSE_CONDITION()
-            //Succeeded in getting the CPU name, copy it to 'cpuNameBuffer', leave the last byte just in case
-            WMI_QUERYING_TRY_WSTOS(cpuNameBuffer, cpuName.bstrVal, "Failed to convert CPU Name to multibyte string.")
-        WMI_QUERYING_END_CONDITION()
+        CTM_WMI_START_CONDITION(FAILED(hres) || cpuName.vt != VT_BSTR || !cpuName.bstrVal)
+            CTM_WMI_ERROR_MV(metricsVector, MetricsVectorIndex::CPUName, "Failed to get CPU Name.")
+        CTM_WMI_ELSE_CONDITION()
+            //Succeeded in getting the CPU name, try converting wstring to string hoping it doesn't fail
+            CTM_WMI_WSTOS_WITH_MV(wmiManager, cpuNameBuffer, cpuName.bstrVal,
+                                metricsVector, MetricsVectorIndex::CPUName, "Failed to convert CPU Name to multibyte string.")
+        CTM_WMI_END_CONDITION()
 
         //2) Vendor Name
         hres = pClassObject->Get(L"Manufacturer", 0, &vendorName, NULL, NULL);
-        WMI_QUERYING_START_CONDITION(FAILED(hres) || vendorName.vt != VT_BSTR || !vendorName.bstrVal)
-            WMI_QUERYING_FAILED_BUFFER_ERROR(vendorNameBuffer, "Failed to get CPU Vendor Name.")
-        WMI_QUERYING_ELSE_CONDITION()
+        CTM_WMI_START_CONDITION(FAILED(hres) || vendorName.vt != VT_BSTR || !vendorName.bstrVal)
+            CTM_WMI_ERROR_MV(metricsVector, MetricsVectorIndex::VendorName, "Failed to get CPU Vendor Name.")
+        CTM_WMI_ELSE_CONDITION()
             //Succeeded in getting the Vendor name, copy it to 'vendorNameBuffer', leave the last byte just in case
-            WMI_QUERYING_TRY_WSTOS(vendorNameBuffer, vendorName.bstrVal, "Failed to convert Vendor Name to multibyte string.")
-        WMI_QUERYING_END_CONDITION()
+            CTM_WMI_WSTOS_WITH_MV(wmiManager, vendorNameBuffer, vendorName.bstrVal,
+                                metricsVector, MetricsVectorIndex::VendorName, "Failed to convert Vendor Name to multibyte string.")
+        CTM_WMI_END_CONDITION()
 
         //3) Virtualization Enabled
         hres = pClassObject->Get(L"VirtualizationFirmwareEnabled", 0, &virtEnabled, NULL, NULL);
-        WMI_QUERYING_START_CONDITION(FAILED(hres) || virtEnabled.vt != VT_BOOL)
-            WMI_QUERYING_FAILED_BUFFER_ERROR(virtEnabledBuffer, "Failed to get status of Virtualization Firmware.")
-        WMI_QUERYING_ELSE_CONDITION()
+        CTM_WMI_START_CONDITION(FAILED(hres) || virtEnabled.vt != VT_BOOL)
+            CTM_WMI_ERROR_MV(metricsVector, MetricsVectorIndex::VirtEnabled, "Failed to get status of Virtualization Firmware.")
+        CTM_WMI_ELSE_CONDITION()
             //Succeeded in getting the Virtualization Enabled, its a bool value btw so just copy our own strings to the buffer
             std::strncpy(virtEnabledBuffer, virtEnabled.boolVal ? "True" : "False", sizeof(virtEnabledBuffer) - 1);
-        WMI_QUERYING_END_CONDITION()
+        CTM_WMI_END_CONDITION()
 
         //4) Base Speed
         hres = pClassObject->Get(L"MaxClockSpeed", 0, &maxClockSpeed, NULL, NULL);
-        WMI_QUERYING_START_CONDITION(FAILED(hres) || maxClockSpeed.vt != VT_I4 || maxClockSpeed.intVal <= 0)
-            metricsVector[static_cast<std::size_t>(MetricsVectorIndex::MaxClockSpeed)].second = "Failed";
-            WMI_QUERYING_FAILED_PURE_ERROR("Failed to get CPU Max Clock Speed")
-        WMI_QUERYING_END_CONDITION()
+        CTM_WMI_START_CONDITION(FAILED(hres) || maxClockSpeed.vt != VT_I4 || maxClockSpeed.intVal <= 0)
+            CTM_WMI_ERROR_MV(metricsVector, MetricsVectorIndex::MaxClockSpeed, "Failed to get CPU Max Clock Speed")
+        CTM_WMI_ELSE_CONDITION()
+            //Succeeded in getting the Max Clock Speed, copy it to metricsVector and move on
+            metricsVector[static_cast<std::size_t>(MetricsVectorIndex::MaxClockSpeed)].second = ((double)maxClockSpeed.intVal / 1000.0);
+        CTM_WMI_END_CONDITION()
         
-        //Succeeded in getting the Max Clock Speed, copy it to metricsVector and move on
-        metricsVector[static_cast<std::size_t>(MetricsVectorIndex::MaxClockSpeed)].second = ((double)maxClockSpeed.intVal / 1000.0);
-
         //Quite useless to do since its only one iteration, but let it stay here for now
         pClassObject.Reset();
     }
@@ -338,7 +320,7 @@ void CTMPerformanceCPUScreen::OnUpdate()
     PlotPoint(GetCurrentXAxisValue(), static_cast<float>(currentCpuUsage));
 
     //Add all the stuff to metrics vector
-    metricsVector[0].second = currentCpuUsage;
+    metricsVector[static_cast<std::size_t>(MetricsVectorIndex::Usage)].second = currentCpuUsage;
 
     //Update per logical processor information if 'isHeatmapHeaderExpanded' is true
     if(isHeatmapHeaderExpanded)
@@ -383,10 +365,8 @@ void CTMPerformanceCPUScreen::RenderCPUStatistics()
                     else
                         ImGui::Text("%.2lfMB", arg);
                 }
-
                 else if constexpr(std::is_same_v<T, DWORD>)
                     ImGui::Text("%d", arg);
-
                 else if constexpr(std::is_same_v<T, const char*>)
                     ImGui::TextUnformatted(arg);
             }, value);
@@ -437,10 +417,14 @@ void CTMPerformanceCPUScreen::RenderLogicalProcessorHeatmap()
             
             //Get the value of the cell, we using row major stuff
             int    index     = cellsXCoord * heatmapGridColumns + cellsYCoord;
-            double cellValue = perLogicalProcessorUsage[index];
+            double cellValue = -1.0;
+
+            //Sanity check the index calculated before assigning to 'cellValue'
+            if(index >= 0 && index < perLogicalProcessorUsage.size())
+                cellValue = perLogicalProcessorUsage[index];
 
             //If the cell at that area has a proper usage (not below 0.0), display core number
-            if(cellValue > -1e-7) //To account for rounding errors in floating point
+            if(cellValue >= 0.0)
             {
                 ImGui::BeginTooltip();
                 ImGui::Text("Core %d", index);

@@ -33,7 +33,7 @@ void CTMPerformanceScreen::OnUpdate()
 void CTMPerformanceScreen::SwitchScreen(CTMPerformanceScreenState newState)
 {
     //Same screen, no need to change it
-    if (currentScreenState == newState)
+    if(currentScreenState == newState)
         return;
 
     //Prepare to change to new screen
@@ -46,6 +46,9 @@ void CTMPerformanceScreen::SwitchScreen(CTMPerformanceScreenState newState)
             break;
         
         case CTMPerformanceScreenState::MemoryInfo:
+            currentScreen = std::make_unique<CTMPerformanceMEMScreen>();
+            break;
+
         default:
             currentScreen = nullptr;
             break;

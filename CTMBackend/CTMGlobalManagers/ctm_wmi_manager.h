@@ -11,7 +11,16 @@
 #include "ctm_critical_resource_guard.h"
 #include "../ctm_logger.h"
 
+//Basically unique_ptr but for COM objects
 using Microsoft::WRL::ComPtr;
+
+//Simple VARIANT wrapper with RAII destruction as <atlcomcli.h> is not supported on MinGW
+class CTMVariant : public tagVARIANT
+{
+public:
+    CTMVariant()  { VariantInit(this); }
+    ~CTMVariant() { VariantClear(this); }
+};
 
 class CTMWMIManager
 {
@@ -22,8 +31,12 @@ public:
         return wmiManager;
     }
 
-    //--------------------GETTER FUNCTION FOR WMI SERVICES--------------------
-    IWbemServices* GetServices();
+    //--------------------GETTER FUNCTION FOR WMI--------------------
+    IWbemServices*        GetServices();
+    IEnumWbemClassObject* GetEnumeratorFromQuery(PCWSTR);
+
+    //--------------------HELPER FUNCTIONS FOR BSTR CONVERSION--------------------
+    bool WSToSWithEllipsisTruncation(PSTR, BSTR, int);
 
 private: //Constructors and Destructors
     CTMWMIManager();

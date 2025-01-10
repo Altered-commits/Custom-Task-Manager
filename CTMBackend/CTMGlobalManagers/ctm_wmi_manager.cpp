@@ -39,10 +39,81 @@ CTMWMIManager::~CTMWMIManager()
         CTM_LOG_WARNING("Resources were already cleaned up by the resource guard, not doing it again.");
 }
 
-//--------------------GETTER FUNCTION FOR WMI SERVICES--------------------
+//--------------------GETTER FUNCTION FOR WMI--------------------
 IWbemServices* CTMWMIManager::GetServices()
 {
     return pServices.Get();
+}
+
+IEnumWbemClassObject* CTMWMIManager::GetEnumeratorFromQuery(PCWSTR query)
+{
+    //Important variable :)
+    IEnumWbemClassObject* pEnumerator = nullptr;
+
+    //Get the WMI services which can be used to query stuff
+    auto pServices = GetServices();
+    //Check if its nullptr or not, if it is nullptr, then wmi wasnt initialized properly
+    if(!pServices)
+    {
+        CTM_LOG_ERROR("WMI Services failed to initialize.");
+        return nullptr;
+    }
+
+    //It isn't nullptr, query whatever u need
+    HRESULT hres = pServices->ExecQuery(
+            bstr_t{L"WQL"},                                        //Query language type. WQL is acronym for WMI Query Language
+            bstr_t{query},
+            WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, //Check: https://learn.microsoft.com/en-us/windows/win32/api/wbemcli/nf-wbemcli-iwbemservices-execquery#parameters
+            NULL,                                                  //Context can be NULL
+            &pEnumerator                                           //Pointer to data in short, just need to enumerate thru the data
+        );
+
+    //Just in case, cuz i am not using resource guard in this specific... so i can't really afford access violations
+    if(FAILED(hres) || pEnumerator == nullptr)
+    {
+        CTM_LOG_ERROR("Failed to query WMI for processor info or Enumerator returned was nullptr.");
+        return nullptr;
+    }
+
+    //Everything succeeded, return enumerator
+    return pEnumerator;
+}
+
+//--------------------HELPER FUNCTIONS FOR BSTR CONVERSION--------------------
+bool CTMWMIManager::WSToSWithEllipsisTruncation(PSTR dest, BSTR src, int destSize)
+{
+    //Either destination or source is nullptr, or destination size is < 4 (no space even for ellipsis truncation '...\0')
+    if(!dest || !src || destSize < 4)
+        return false;
+    
+    //Get the length of source string without null terminator
+    std::size_t srcSize      = std::wcslen(src);
+    bool        needsTrunc   = srcSize >= destSize;
+    int         trueDestSize = needsTrunc ? destSize - 4 : destSize;
+    
+    //Convert wide char (in our case is BSTR) to 8 bit char
+    int res = WideCharToMultiByte(
+                        CP_UTF8,      //UTF8 encoding is used
+                        0,            //NOTE: For the code page 65001 (UTF-8), dwFlags must be set to either 0 or WC_ERR_INVALID_CHARS
+                        src,          //Source string
+                        -1,           //Source string is null terminated so just use whatever the size of the source is
+                        dest,         //Destination string
+                        trueDestSize, //Destination buffer size after conditional checks
+                        //For CP_UTF8, these parameters need to be NULL
+                        NULL,
+                        NULL
+                    );
+    
+    //Conversion failed
+    if(res == 0)
+        return false;
+
+    //Check if ellipsis is needed
+    //If it does, then add ellipsis (...) at the end along with null terminator ('.', '.', '.' and '\0')
+    if(needsTrunc)
+        std::memcpy(dest + trueDestSize, "...", 4);
+
+    return true;
 }
 
 //--------------------INITIALIZE WMI AND COM--------------------

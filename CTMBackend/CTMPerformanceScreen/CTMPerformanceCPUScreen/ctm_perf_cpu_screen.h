@@ -5,45 +5,19 @@
 #include <windows.h>
 #include <winternl.h>
 #include <ntstatus.h>
-#include <wrl/client.h> //For ComPtr
 //My stuff
 #include "../ctm_perf_graph.h"
+#include "../ctm_perf_common.h"
 #include "../../ctm_base_state.h"
 #include "../../ctm_logger.h"
 #include "../../CTMGlobalManagers/ctm_wmi_manager.h"
 //Stdlib stuff
-#include <variant>
-#include <vector>
 #include <memory>
 #include <cmath>
 #include <cstring>
 
 //MSVC warnings forcing me to use _s function, NOPE, i handle stuff in my own way so no thanks
 #pragma warning(disable:4996)
-
-//Simple VARIANT wrapper for RAII destruction as <atlcomcli.h> is not supported on MinGW
-class CTMVariant : public tagVARIANT
-{
-public:
-    CTMVariant()  { VariantInit(this); }
-    ~CTMVariant() { VariantClear(this); }
-};
-
-//Few defines for WMI querying because the function was looking cluttered, an absolute mess
-//Other files will just use proper functions
-#define WMI_QUERYING_FAILED_BUFFER_ERROR(buffer, errorMsg) std::strncpy(buffer, "Failed", sizeof(buffer) - 1);\
-                                                            CTM_LOG_ERROR(errorMsg);
-
-#define WMI_QUERYING_FAILED_PURE_ERROR(errorMsg) CTM_LOG_ERROR(errorMsg);\
-                                                 return false;
-
-#define WMI_QUERYING_TRY_WSTOS(outBuffer, inBuffer, errorMsg) \
-                    if(std::wcstombs(outBuffer, inBuffer, sizeof(outBuffer) - 1) == static_cast<std::size_t>(-1))\
-                    { WMI_QUERYING_FAILED_BUFFER_ERROR(outBuffer, errorMsg) }
-
-#define WMI_QUERYING_START_CONDITION(cond)  if(cond) {
-#define WMI_QUERYING_ELSE_CONDITION()       } else {
-#define WMI_QUERYING_END_CONDITION()        }
 
 //Pass this value to 'NtQuerySystemInformation' to get the required per logical processor information
 #define SystemProcessorPerformanceInformation 8
@@ -53,9 +27,7 @@ public:
 typedef NTSTATUS(WINAPI* NtQuerySystemInformation_t)
                 (SYSTEM_INFORMATION_CLASS, PVOID, ULONG, PULONG);
 
-//'using' makes my life alot easier
-using MetricsValue               = std::variant<DWORD, double, const char*>;
-using MetricsVector              = std::vector<std::pair<const char*, MetricsValue>>;
+//'using' makes my life alot easier... alr ik this is getting annoying. BUT I WON'T STOP ;)
 using ProcessorPerformanceVector = std::vector<SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION>;
 
 class CTMPerformanceCPUScreen : public CTMBasePerformanceScreen, protected CTMPerformanceUsageGraph
