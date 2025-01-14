@@ -12,13 +12,13 @@ CTMAppContent::CTMAppContent()
 void CTMAppContent::SwitchScreen(CTMScreenState newState)
 {
     //Same screen, no need to change it
-    if (currentScreenState == newState)
+    if(currentScreenState == newState)
         return;
 
     //Prepare to change to new screen
     currentScreenState = newState;
 
-    switch (newState)
+    switch(newState)
     {
         case CTMScreenState::Processes:
             currentScreen = std::make_unique<CTMProcessScreen>();

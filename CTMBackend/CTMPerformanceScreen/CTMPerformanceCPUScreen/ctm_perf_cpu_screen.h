@@ -1,5 +1,5 @@
-#ifndef CTM_PERFORMANCE_CPU_SCREEN
-#define CTM_PERFORMANCE_CPU_SCREEN
+#ifndef CTM_PERFORMANCE_CPU_SCREEN_HPP
+#define CTM_PERFORMANCE_CPU_SCREEN_HPP
 
 //Windows stuff
 #include <windows.h>

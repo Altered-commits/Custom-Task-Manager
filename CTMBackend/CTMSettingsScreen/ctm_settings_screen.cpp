@@ -9,6 +9,7 @@ CTMSettingsScreen::CTMSettingsScreen()
     currentDisplayMode = stateManager.getSetting(CTMSettingKey::DisplayMode, currentDisplayMode);
     //Page Settings
     currentPageIndex   = stateManager.getSetting(CTMSettingKey::ScreenState, currentPageIndex);
+    currentPerfIndex   = stateManager.getSetting(CTMSettingKey::PerfState, currentPerfIndex);
 
     SetInitialized(true);
 }
@@ -22,6 +23,7 @@ CTMSettingsScreen::~CTMSettingsScreen()
     stateManager.setSetting(CTMSettingKey::DisplayMode, currentDisplayMode);
     //Page Settings
     stateManager.setSetting(CTMSettingKey::ScreenState, currentPageIndex);
+    stateManager.setSetting(CTMSettingKey::PerfState, currentPerfIndex);
 
     SetInitialized(false);
 }
@@ -43,7 +45,9 @@ void CTMSettingsScreen::OnRender()
     ImGui::Dummy({0, 20.0f});
     //Section 2: Page settings
     RenderSectionTitle("Default Page Settings", screenSize);
-    RenderComboBox("Startup Page", "##DefaultStartupPage", pages, IM_ARRAYSIZE(pages), currentPageIndex, screenSize,
+    RenderComboBox("Startup Page", "##DefaultStartupPage", mainPages, mainPageCount, currentPageIndex, screenSize,
+                    comboBoxWidth, screenPadding.x);
+    RenderComboBox("Performance Page", "##DefaultPerformancePage", perfPages, perfPageCount, currentPerfIndex, screenSize,
                     comboBoxWidth, screenPadding.x);
 }
 

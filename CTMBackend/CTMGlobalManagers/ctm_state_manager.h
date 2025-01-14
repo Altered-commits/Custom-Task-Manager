@@ -25,6 +25,7 @@ enum class CTMSettingKey : std::uint8_t
 {
     //ScreenState is basically, which screen did u last visit before shutting down (Settings, Processes, etc)
     ScreenState,
+    PerfState, //ScreenState but for Performance Page
 
     //Display related settings
     DisplayTheme,
@@ -82,7 +83,7 @@ private: //Settings variables
     const char* iniFileName = "CTMSettings.ini";
     SettingsMap settingsMap;
     //String repr of 'CTMSettingKey' enum, internal to this class
-    constexpr static const char* CTMSettingKeyStringRepr[] = { "CTMScreenState", "CTMDisplayTheme", "CTMDisplayMode" };
+    constexpr static const char* CTMSettingKeyStringRepr[] = { "CTMScreenState", "CTMPerfState", "CTMDisplayTheme", "CTMDisplayMode" };
 };
 
 //--------------------SETTINGS MANAGER (TEMPLATED FUNCTIONS)--------------------

@@ -1,5 +1,5 @@
-#ifndef CTM_PERFORMANCE_MEM_SCREEN
-#define CTM_PERFORMANCE_MEM_SCREEN
+#ifndef CTM_PERFORMANCE_MEM_SCREEN_HPP
+#define CTM_PERFORMANCE_MEM_SCREEN_HPP
 
 //Windows stuff
 #include <windows.h>

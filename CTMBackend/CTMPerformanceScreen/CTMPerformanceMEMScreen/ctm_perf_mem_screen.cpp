@@ -1,5 +1,8 @@
 #include "ctm_perf_mem_screen.h"
 
+//Hindering with my std::max
+#undef max
+
 //Equivalent to OnInit function
 CTMPerformanceMEMScreen::CTMPerformanceMEMScreen()
 {
@@ -470,7 +473,9 @@ void CTMPerformanceMEMScreen::RenderMemoryComposition()
            memoryInUse     = CTM_GB_TO_MB(std::get<double>(metricsVector[static_cast<std::size_t>(MetricsVectorIndex::MemoryUsage)].second)),
            memoryStandby   = CTM_GB_TO_MB(std::get<double>(metricsVector[static_cast<std::size_t>(MetricsVectorIndex::CachedData)].second)),
            memoryTotal     = CTM_GB_TO_MB(std::get<double>(metricsVector[static_cast<std::size_t>(MetricsVectorIndex::InstalledMemory)].second)),
-           memoryRemaining = memoryTotal - (memoryInUse + memoryStandby + memoryModified + memoryHardwareReserved);
+           memoryAddedUp   = (memoryInUse + memoryStandby + memoryModified + memoryHardwareReserved),
+           //If the memory goes negative, no free memory exists. Clamp its value at 0.0
+           memoryRemaining = std::max((memoryTotal - memoryAddedUp), 0.0);
 
     //Needed this approach so i could do a loop over each value and stuff, instead of writing code a billion times for each value
     std::pair<double, const char*> memoryValues[] = {
@@ -490,21 +495,27 @@ void CTMPerformanceMEMScreen::RenderMemoryComposition()
                 prevCursorPos = cursorPos;
     ImDrawList* drawList      = ImGui::GetWindowDrawList();
 
+    //If the added up memory value somehow exceeds total memory due to my bad coding, normalize the values to make them fit in bar
+    double normalizationFactor = (memoryAddedUp > memoryTotal) ? (memoryTotal / memoryAddedUp) : 1.0;
+
     for(std::uint8_t i = 0; i < memoryValuesSize; i++)
     {
         auto&&[value, info] = memoryValues[i];
         
+        //Adjust the value based on the normalization factor
+        double adjustedValue = value * normalizationFactor;
+
         //Calculate the width we need to plot for a specific block
-        double memoryValueWidth = ((value / memoryTotal) * (double)windowSize.x);
+        double memoryValueWidth = ((adjustedValue / memoryTotal) * ((double)windowSize.x));
 
         //For the last 2 blocks, just like task manager, display only border
         //Also not bothering changing any colors rn. Maybe in future
-        if(i > memoryValuesSize - 3)
+        if(i >= (memoryValuesSize - 2))
             RenderMemoryCompositionBarBorder(drawList, cursorPos, memoryValueWidth, barHeight, IM_COL32(145, 114, 232, 200), 1.0f);
         else
             RenderMemoryCompositionBarFilled(drawList, cursorPos, memoryValueWidth, barHeight,
                                             IM_COL32(145, 114, 232, 150), IM_COL32(145, 114, 232, 200), 1.0f);
-        
+
         //Check if we hovered over a specific block of memory. If we are, display the info of that block
         if(ImGui::IsMouseHoveringRect(prevCursorPos, {prevCursorPos.x + (float)memoryValueWidth, prevCursorPos.y + barHeight}))
             ImGui::SetTooltip("%s\n\nUsage: %.2lfMB", info, value);

@@ -5,6 +5,10 @@ CTMPerformanceScreen::CTMPerformanceScreen()
 {
     //Tell the CTMAppContent that the current screen is CTMPerformanceScreen, so remove the default padding which it adds
     stateManager.SetIsPerfScreen(true);
+    //Also according to the settings, initialize the default page (if it doesn't exist, then the default page is CPU)
+    SwitchScreen(static_cast<CTMPerformanceScreenState>(
+        stateManager.getSetting(CTMSettingKey::PerfState, static_cast<int>(CTMPerformanceScreenState::CpuInfo))
+    ));
     SetInitialized(true);
 }
 
@@ -39,7 +43,7 @@ void CTMPerformanceScreen::SwitchScreen(CTMPerformanceScreenState newState)
     //Prepare to change to new screen
     currentScreenState = newState;
 
-    switch (newState)
+    switch(newState)
     {
         case CTMPerformanceScreenState::CpuInfo:
             currentScreen = std::make_unique<CTMPerformanceCPUScreen>();
@@ -47,6 +51,10 @@ void CTMPerformanceScreen::SwitchScreen(CTMPerformanceScreenState newState)
         
         case CTMPerformanceScreenState::MemoryInfo:
             currentScreen = std::make_unique<CTMPerformanceMEMScreen>();
+            break;
+        
+        case CTMPerformanceScreenState::NetInfo:
+            currentScreen = std::make_unique<CTMPerformanceNETScreen>();
             break;
 
         default:
@@ -126,6 +134,8 @@ void CTMPerformanceScreen::RenderSidebar(const ImVec2& contentRegion)
                         {0.2f, 0.5f, 0.8f, 1.0f}, {0.1f, 0.3f, 0.6f, 1.0f}, CTMPerformanceScreenState::CpuInfo);
         RenderSidebarButton("MEM", "Memory Info", sidebarButtonSize,
                         {0.3f, 0.7f, 0.3f, 1.0f}, {0.2f, 0.5f, 0.2f, 1.0f}, CTMPerformanceScreenState::MemoryInfo);
+        RenderSidebarButton("NET", "Network Info", sidebarButtonSize,
+                        {0.0f, 0.5f, 0.9f, 1.0f}, {0.0f, 0.3f, 0.7f, 1.0f}, CTMPerformanceScreenState::NetInfo);
     }
     ImGui::EndChild();
 }

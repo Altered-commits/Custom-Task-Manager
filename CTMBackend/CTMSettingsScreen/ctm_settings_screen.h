@@ -47,9 +47,14 @@ private: //Settings variables
     const char* dispModes[2]       = { "Normal", "Fullscreen" };
     
     //----------Page section----------
-    constexpr static int pageCount        = static_cast<int>(CTMScreenState::PageCount);
+    constexpr static int mainPageCount    = static_cast<int>(CTMScreenState::PageCount);
+    constexpr static int perfPageCount    = static_cast<int>(CTMPerformanceScreenState::PageCount);
+    //
     int                  currentPageIndex = static_cast<int>(CTMScreenState::Settings);
-    const char*          pages[pageCount] = { "Processes", "Performance", "Apps", "Services", "Settings" };
+    int                  currentPerfIndex = static_cast<int>(CTMPerformanceScreenState::CpuInfo);
+    //
+    const char*          mainPages[mainPageCount] = { "Processes", "Performance", "Apps", "Services", "Settings" };
+    const char*          perfPages[perfPageCount] = { "CPU", "Memory", "Network" };
 
 private: //Common variables
     const float comboBoxWidth     = 230.0f;
