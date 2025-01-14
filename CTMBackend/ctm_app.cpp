@@ -139,14 +139,14 @@ void CTMApp::RenderFrame()
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
-    //Entire app gui in this one function
+    //Entire app GUI in this one function
     RenderFrameContent();
 
     //Rendering
     ImGui::Render();
-    const float clear_color_with_alpha[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    const float clearColorWithAlpha[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
     g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, nullptr);
-    g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, clear_color_with_alpha);
+    g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, clearColorWithAlpha);
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }
 

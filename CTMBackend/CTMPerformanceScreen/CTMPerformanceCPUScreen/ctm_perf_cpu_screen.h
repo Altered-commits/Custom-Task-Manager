@@ -5,6 +5,7 @@
 #include <windows.h>
 #include <winternl.h>
 #include <ntstatus.h>
+#include <Psapi.h>
 //My stuff
 #include "../ctm_perf_graph.h"
 #include "../ctm_perf_common.h"
@@ -16,7 +17,7 @@
 #include <cmath>
 #include <cstring>
 
-//MSVC warnings forcing me to use _s function, NOPE, i handle stuff in my own way so no thanks
+//MSVC warnings forcing me to use _s function... NOPE, i handle stuff in my own way so no thanks
 #pragma warning(disable:4996)
 
 //Pass this value to 'NtQuerySystemInformation' to get the required per logical processor information
@@ -61,6 +62,9 @@ private: //NT dll
 
 private: //WMI manager
     CTMWMIManager& wmiManager = CTMWMIManager::GetInstance();
+
+private: //Performance Info
+    PERFORMANCE_INFORMATION performanceInfo = { sizeof(PERFORMANCE_INFORMATION) };
 
 private: //CPU related variables
     ULARGE_INTEGER prevIdleTime         = { 0 };

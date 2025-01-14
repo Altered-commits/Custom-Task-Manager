@@ -10,6 +10,8 @@
 //My stuff
 #include "ctm_critical_resource_guard.h"
 #include "../ctm_logger.h"
+//Stdlib stuff
+#include <cstring>
 
 //Basically unique_ptr but for COM objects
 using Microsoft::WRL::ComPtr;

@@ -10,13 +10,16 @@ CTMPerformanceCPUScreen::CTMPerformanceCPUScreen()
 {
     //Try getting 'NtQuerySystemInformation' function from ntdll.dll, if can't, don't let this class initialize
     if(!CTMConstructorInitNTDLL())
+    {
+        CTM_LOG_ERROR("Failed to get 'NtQuerySystemInformation'. CPU screen won't initialize");
         return;
+    }
 
     //Get details like CPU name, base speed, etc from WMI. If can't, still allow initialization
     if(!CTMConstructorQueryWMI())
         CTM_LOG_WARNING("Failed to fully initialize details from WMI, expect 'Failed' values to exist in the table.");
 
-    //Try getting entire CPU info, if we can't, return. Never let it initialize
+    //Try getting entire CPU info, if we can't, return. Never let it initialize. NOTE: To be changed
     if(!CTMConstructorGetCPUInfo())
         return;
 
@@ -39,7 +42,7 @@ bool CTMPerformanceCPUScreen::CTMConstructorInitNTDLL()
         CTM_LOG_ERROR("Failed to get module handle for ntdll.dll");
         return false;
     }
-
+    //Try getting the function we need in ntdll.dll
     NtQuerySystemInformation  = reinterpret_cast<NtQuerySystemInformation_t>(
         GetProcAddress(hNtdll, "NtQuerySystemInformation")
     );
@@ -503,52 +506,63 @@ void CTMPerformanceCPUScreen::UpdatePerLogicalProcessorInfo()
 
 void CTMPerformanceCPUScreen::UpdateProcessCounters()
 {
-    NTSTATUS status;
-    //Keep resizing as long as the buffer isn't big enough
-    do
+    /*
+     * Initially used 'NtQuerySystemInformation' with 'SystemProcessInformation' but switched to 'GetPerformanceInfo' cuz-
+     * -i want to minimize use of Nt.. functions as much as possible.
+     */
+    if(!GetPerformanceInfo(&performanceInfo, sizeof(performanceInfo)))
     {
-        //If you are wondering what this does, it pretty much gives u a big array of 'SYSTEM_PROCESS_INFORMATION' structs
-        status = NtQuerySystemInformation(SystemProcessInformation, systemInformationBuffer.data(),
-                                            systemInformationBuffer.size(), &systemInformationBufferSize);
-
-        if(status == STATUS_INFO_LENGTH_MISMATCH)
-            systemInformationBuffer.resize(systemInformationBufferSize);
-    }
-    while (status == STATUS_INFO_LENGTH_MISMATCH);
-
-    if(status != STATUS_SUCCESS)
-    {
-        CTM_LOG_ERROR("Failed to collect process, thread and handle information for system. Error code: ", status);
+        CTM_LOG_ERROR("Failed to get performance information for CPU information.");
         return;
-    }
-
-    //We succeeded in collecting information, go ahead and update these variables first
-    ULONG totalProcesses = 0, totalHandles = 0, totalThreads = 0;
-
-    //Now update the current information by looping over the data
-    PSYSTEM_PROCESS_INFORMATION systemInformationPtr = reinterpret_cast<PSYSTEM_PROCESS_INFORMATION>(systemInformationBuffer.data());
-
-    while(systemInformationPtr)
-    {
-        totalProcesses++;
-        totalHandles += systemInformationPtr->HandleCount;
-        totalThreads += systemInformationPtr->NumberOfThreads;
-
-        //No more entries so break outta loop
-        if(systemInformationPtr->NextEntryOffset == 0)
-            break;
-        
-        //More entries, move the pointer ahead by the specified bytes
-        systemInformationPtr = reinterpret_cast<PSYSTEM_PROCESS_INFORMATION>(
-                                    reinterpret_cast<BYTE*>(systemInformationPtr) + systemInformationPtr->NextEntryOffset
-                                );
     }
 
     //Just simple throw those variables to the metricsVector
     //1) Total Processes
-    metricsVector[static_cast<std::size_t>(MetricsVectorIndex::TotalProcesses)].second = totalProcesses;
+    metricsVector[static_cast<std::size_t>(MetricsVectorIndex::TotalProcesses)].second = performanceInfo.ProcessCount;
     //2) Total Handles
-    metricsVector[static_cast<std::size_t>(MetricsVectorIndex::TotalHandles)].second = totalHandles;
+    metricsVector[static_cast<std::size_t>(MetricsVectorIndex::TotalHandles)].second = performanceInfo.HandleCount;
     //3) Total Threads
-    metricsVector[static_cast<std::size_t>(MetricsVectorIndex::TotalThreads)].second = totalThreads;
+    metricsVector[static_cast<std::size_t>(MetricsVectorIndex::TotalThreads)].second = performanceInfo.ThreadCount;
+
+    //This was the code used before if anyone is curious
+    // NTSTATUS status;
+    // //Keep resizing as long as the buffer isn't big enough
+    // do
+    // {
+    //     //If you are wondering what this does, it pretty much gives u a big array of 'SYSTEM_PROCESS_INFORMATION' structs
+    //     status = NtQuerySystemInformation(SystemProcessInformation, systemInformationBuffer.data(),
+    //                                         systemInformationBuffer.size(), &systemInformationBufferSize);
+
+    //     if(status == STATUS_INFO_LENGTH_MISMATCH)
+    //         systemInformationBuffer.resize(systemInformationBufferSize);
+    // }
+    // while(status == STATUS_INFO_LENGTH_MISMATCH);
+
+    // if(status != STATUS_SUCCESS)
+    // {
+    //     CTM_LOG_ERROR("Failed to collect process, thread and handle information for system. Error code: ", status);
+    //     return;
+    // }
+
+    // //We succeeded in collecting information, go ahead and update these variables first
+    // ULONG totalProcesses = 0, totalHandles = 0, totalThreads = 0;
+
+    // //Now update the current information by looping over the data
+    // PSYSTEM_PROCESS_INFORMATION systemInformationPtr = reinterpret_cast<PSYSTEM_PROCESS_INFORMATION>(systemInformationBuffer.data());
+
+    // while(systemInformationPtr)
+    // {
+    //     totalProcesses++;
+    //     totalHandles += systemInformationPtr->HandleCount;
+    //     totalThreads += systemInformationPtr->NumberOfThreads;
+
+    //     //No more entries so break outta loop
+    //     if(systemInformationPtr->NextEntryOffset == 0)
+    //         break;
+        
+    //     //More entries, move the pointer ahead by the specified bytes
+    //     systemInformationPtr = reinterpret_cast<PSYSTEM_PROCESS_INFORMATION>(
+    //                                 reinterpret_cast<BYTE*>(systemInformationPtr) + systemInformationPtr->NextEntryOffset
+    //                             );
+    // }
 }

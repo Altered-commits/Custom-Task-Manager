@@ -4,12 +4,15 @@
 //Windows stuff
 #include <windows.h>
 #include <Psapi.h>
+#include <Pdh.h>
 //My stuff
 #include "../ctm_perf_graph.h"
 #include "../ctm_perf_common.h"
+#include "../../ctm_constants.h"
 #include "../../ctm_base_state.h"
 #include "../../ctm_logger.h"
 #include "../../CTMGlobalManagers/ctm_wmi_manager.h"
+#include "../../CTMGlobalManagers/ctm_critical_resource_guard.h"
 //Stdlib stuff
 #include <string>
 #include <unordered_map>
@@ -36,34 +39,55 @@ protected:
     void OnRender() override;
     void OnUpdate() override;
 
-private: //Constructor functions
+private: //Constructor and Destructor functions
+    bool CTMConstructorInitPDH();
     bool CTMConstructorInitMemoryInfo();
     bool CTMConstructorInitPerformanceInfo();
     bool CTMConstructorQueryWMI();
     void CTMConstructorFormFactorStringify(MemoryInfo&, int);
+    //
+    void CTMDestructorCleanupPDH();
 
 private: //Render functions
     void RenderMemoryStatistics();
     void RenderPerRAMInfo(MemoryInfo&);
+    //
+    void RenderMemoryComposition();
+    void RenderMemoryCompositionBarFilled(ImDrawList*, ImVec2&, float, float, ImU32, ImU32, float);
+    void RenderMemoryCompositionBarBorder(ImDrawList*, ImVec2&, float, float, ImU32, float);
 
 private: //Update functions
     double UpdateMemoryStatus();
     bool   UpdateMemoryPerfInfo(); //Bool used for constructor function
+    void   UpdateMemoryCompositionInfo();
 
-private: //WMI Querying stuff
-    CTMWMIManager& wmiManager = CTMWMIManager::GetInstance();
+private: //WMI Querying stuff and resource guard for PDH
+    CTMWMIManager&            wmiManager    = CTMWMIManager::GetInstance();
+    CTMCriticalResourceGuard& resourceGuard = CTMCriticalResourceGuard::GetInstance();
+
+    //Unique name for resource guard cleanup function. Didn't really want to make another 'private' section
+    const char* pdhCleanupFunctionName = "CTMPerformanceMEMScreen::ClosePDHQuery";
 
 private: //Collapsable header variables
-    bool isStatisticsHeaderExpanded = false;
+    bool isStatisticsHeaderExpanded  = false;
+    bool isMemoryCompositionExpanded = false;
 
-private: //Conversion ratios, as they are commonly used
-    constexpr static double BToGB  = (1024.0 * 1024.0 * 1024.0);
-    constexpr static double KBToGB = (1024.0 * 1024.0);
+private: //PDH query variables
+    PDH_HQUERY   hQuery                 = nullptr;
+    PDH_HCOUNTER hModifiedMemoryCounter = nullptr;
 
 private: //Structs used by winapi to get memory data
     MEMORYSTATUSEX          memStatus = { 0 };
     PERFORMANCE_INFORMATION perfInfo  = { 0 };
-    
+
+private: //Some stuff which cannot be in the metricsVector (as i don't want to display them)
+    //
+    SIZE_T totalPageSize    = 0;
+    double totalPageFile    = 0.0;
+    DWORD  totalMemorySlots = 0;
+    //By default in MB
+    double memoryModified = 0.0;
+
 private: //Memory Variables
     //Check ctm_perf_cpu_screen.h
     enum class MetricsVectorIndex : std::uint8_t 
@@ -72,10 +96,6 @@ private: //Memory Variables
         PagedPool, NonPagedPool, InstalledMemory, OSUsableMemory, HardwareReservedMemory,
         MemorySlots
     };
-
-    //Committed memory is displayed as (committed / total), so for that i need to store total, committed is in metricsVector itself
-    double totalPageFile    = 0.0;
-    DWORD  totalMemorySlots = 0;
 
     //Stores all the metric value pairs
     MetricsVector metricsVector = {

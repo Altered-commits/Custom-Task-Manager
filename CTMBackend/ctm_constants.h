@@ -35,4 +35,32 @@
 #define CREGION_SIDEBAR_WIDTH         (70)
 #define CREGION_PERFSCR_SIDEBAR_WIDTH CREGION_SIDEBAR_WIDTH //Performance screen sidebar width
 
+/*
+ * I also decided to define some common macros which i could use around files
+ * Because this happens to be quite commonly used across other files :)
+ */
+
+//1) Conversion ratios
+#define CTM_DIV_BY_KB(val)     ((val) / (1024.0))
+#define CTM_DIV_BY_KBSQR(val)  ((val) / (1024.0 * 1024.0))
+#define CTM_DIV_BY_KBCUBE(val) ((val) / (1024.0 * 1024.0 * 1024.0))
+
+#define CTM_MUL_BY_KB(val)     ((val) * (1024.0))
+#define CTM_MUL_BY_KBSQR(val)  ((val) * (1024.0 * 1024.0))
+#define CTM_MUL_BY_KBCUBE(val) ((val) * (1024.0 * 1024.0 * 1024.0))
+
+//1.1) Increasing readability
+#define CTM_BYTES_TO_KB(val) CTM_DIV_BY_KB(val)
+#define CTM_BYTES_TO_MB(val) CTM_DIV_BY_KBSQR(val)
+#define CTM_BYTES_TO_GB(val) CTM_DIV_BY_KBCUBE(val)
+
+#define CTM_KB_TO_BYTES(val) CTM_MUL_BY_KB(val)
+#define CTM_MB_TO_BYTES(val) CTM_MUL_BY_KBSQR(val)
+#define CTM_GB_TO_BYTES(val) CTM_MUL_BY_KBCUBE(val)
+
+#define CTM_KB_TO_GB(val)    CTM_DIV_BY_KBSQR(val)
+#define CTM_GB_TO_KB(val)    CTM_MUL_BY_KBSQR(val)
+#define CTM_MB_TO_GB(val)    CTM_DIV_BY_KB(val)
+#define CTM_GB_TO_MB(val)    CTM_MUL_BY_KB(val)
+
 #endif

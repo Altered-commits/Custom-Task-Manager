@@ -3,6 +3,13 @@
 //Equivalent to OnInit function
 CTMPerformanceMEMScreen::CTMPerformanceMEMScreen()
 {
+    //I won't let this screen initialize when we are not able to get basic stuff
+    if(!CTMConstructorInitPDH())
+    {
+        CTM_LOG_ERROR("Failed to initialize Performance Data Helper. Not initializing Memory Screen.");
+        return;
+    }
+
     if(!CTMConstructorInitMemoryInfo())
         CTM_LOG_WARNING("Expect improper Memory data (Values maybe 0).");
 
@@ -18,10 +25,53 @@ CTMPerformanceMEMScreen::CTMPerformanceMEMScreen()
 //Equivalent to OnClean function
 CTMPerformanceMEMScreen::~CTMPerformanceMEMScreen()
 {
+    CTMDestructorCleanupPDH();
     SetInitialized(false);
 }
 
-//--------------------CONSTRUCTOR FUNCTIONS--------------------
+//--------------------CONSTRUCTOR AND DESTRUCTOR FUNCTIONS--------------------
+bool CTMPerformanceMEMScreen::CTMConstructorInitPDH()
+{
+    //Open the pdh query stuff idk
+    PDH_STATUS status = PdhOpenQueryW(NULL, 0, &hQuery);
+    if(status != ERROR_SUCCESS)
+    {
+        CTM_LOG_ERROR("Failed to open PDH query. Error code: ", status);
+        return false;
+    }
+
+    //While we are at it, register a resource guard to cleanup PDH query incase of a disaster
+    resourceGuard.RegisterCleanupFunction(pdhCleanupFunctionName, [this](){
+        PdhCloseQuery(hQuery);
+    });
+
+    //Add a counter to get modified page list bytes, just like task manager
+    status = PdhAddEnglishCounterW(hQuery, L"\\Memory\\Modified Page List Bytes", 0, &hModifiedMemoryCounter);
+    if(status != ERROR_SUCCESS)
+    {
+        CTM_LOG_ERROR("Failed to add counter for modified page list. Error code: ", status);
+        //Close it as we can't even add a counter. Also unregister the resource guard
+        PdhCloseQuery(hQuery);
+        resourceGuard.UnregisterCleanupFunction(pdhCleanupFunctionName);
+        return false;
+    }
+
+    //Query it once as we will re-query it after every one second updation, giving us the good values
+    //Also if we can't even query it initially, close the query and return false
+    status = PdhCollectQueryData(hQuery);
+    if(status != ERROR_SUCCESS)
+    {
+        CTM_LOG_ERROR("Failed to collect data from PDH initially. Error code: ", status);
+        //Close it as we can't get any data anyways. Also unregister the resource guard
+        PdhCloseQuery(hQuery);
+        resourceGuard.UnregisterCleanupFunction(pdhCleanupFunctionName);
+        return false;
+    }
+
+    //PDH is initialized and can be queried
+    return true;
+}
+
 bool CTMPerformanceMEMScreen::CTMConstructorInitMemoryInfo()
 {
     //This variable is in the class itself if u didn't notice it yet
@@ -42,8 +92,8 @@ bool CTMPerformanceMEMScreen::CTMConstructorInitMemoryInfo()
     }
 
     //Convert the total installed memory and total OS usable memory into GB
-    double totalInstalledMemoryInGB = totalInstalledMemoryInKB / KBToGB;
-    double totalOSUsableMemoryInGB  = memStatus.ullTotalPhys   / BToGB;
+    double totalInstalledMemoryInGB = CTM_KB_TO_GB(totalInstalledMemoryInKB);
+    double totalOSUsableMemoryInGB  = CTM_BYTES_TO_GB(memStatus.ullTotalPhys);
 
     //and place it in 'metricsVector'
     metricsVector[static_cast<std::size_t>(MetricsVectorIndex::InstalledMemory)].second = totalInstalledMemoryInGB;
@@ -54,12 +104,12 @@ bool CTMPerformanceMEMScreen::CTMConstructorInitMemoryInfo()
                                                     (totalInstalledMemoryInGB - totalOSUsableMemoryInGB) * 1024.0;
 
     //Calc the committed memory as well in GB
-    totalPageFile = memStatus.ullTotalPageFile / BToGB;
-    double committedPageFile = totalPageFile - memStatus.ullAvailPageFile / BToGB;
+    totalPageFile = CTM_BYTES_TO_GB(memStatus.ullTotalPageFile);
+    double committedPageFile = totalPageFile - CTM_BYTES_TO_GB(memStatus.ullAvailPageFile);
     metricsVector[static_cast<std::size_t>(MetricsVectorIndex::CommittedMemory)].second = committedPageFile;
 
     //Calculate the current memory usage at this point in time along with total available memory
-    double totalAvailableMemoryInGB = memStatus.ullAvailPhys / BToGB;
+    double totalAvailableMemoryInGB = CTM_BYTES_TO_GB(memStatus.ullAvailPhys);
     metricsVector[static_cast<std::size_t>(MetricsVectorIndex::MemoryUsage)].second     = totalOSUsableMemoryInGB - totalAvailableMemoryInGB;
     metricsVector[static_cast<std::size_t>(MetricsVectorIndex::AvailableMemory)].second = totalAvailableMemoryInGB;
 
@@ -73,7 +123,13 @@ bool CTMPerformanceMEMScreen::CTMConstructorInitPerformanceInfo()
     perfInfo.cb = sizeof(PERFORMANCE_INFORMATION);
 
     //Used this function cuz all the variables from this function are dynamic
-    return UpdateMemoryPerfInfo();
+    bool functionSucceeded = UpdateMemoryPerfInfo();
+
+    //Also before we return, write the page size to variable 'totalPageSize' only in the case where function succeeded
+    if(functionSucceeded)
+        totalPageSize = perfInfo.PageSize;
+    
+    return functionSucceeded;
 }
 
 bool CTMPerformanceMEMScreen::CTMConstructorQueryWMI()
@@ -171,8 +227,8 @@ bool CTMPerformanceMEMScreen::CTMConstructorQueryWMI()
         CTM_WMI_START_CONDITION(FAILED(hres) || memoryCapacity.vt != VT_BSTR  || !memoryCapacity.bstrVal)
             CTM_LOG_ERROR("Failed to get per RAM capacity.");
         CTM_WMI_ELSE_CONDITION()
-            //Not bothering error checking rn cuz chances of ULL overflowing is like... bruh
-            memoryInfo.capacity = std::wcstoull(memoryCapacity.bstrVal, nullptr, 10) / BToGB;
+            //Not bothering error checking rn cuz chances of ULL overflowing is like... bruh. Its a big ass value
+            memoryInfo.capacity = CTM_BYTES_TO_GB(std::wcstoull(memoryCapacity.bstrVal, nullptr, 10));
         CTM_WMI_END_CONDITION()
 
         //2) ConfiguredClockSpeed
@@ -247,6 +303,13 @@ void CTMPerformanceMEMScreen::CTMConstructorFormFactorStringify(MemoryInfo& memo
     memoryInfo.formFactor = formFactorStringRepr;
 }
 
+void CTMPerformanceMEMScreen::CTMDestructorCleanupPDH()
+{
+    //Close the PDH query and unregister resource guard as its no longer needed
+    PdhCloseQuery(hQuery);
+    resourceGuard.UnregisterCleanupFunction(pdhCleanupFunctionName);
+}
+
 //--------------------MAIN RENDER AND UPDATE FUNCTIONS--------------------
 void CTMPerformanceMEMScreen::OnRender()
 {
@@ -264,6 +327,13 @@ void CTMPerformanceMEMScreen::OnRender()
     //Add some padding to the frame (see the blank space around the text of the collapsable header)
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 10.0f));
 
+    isMemoryCompositionExpanded = ImGui::CollapsingHeader("Memory Composition");
+    if(isMemoryCompositionExpanded)
+        RenderMemoryComposition();
+
+    //Even more spacing vertically
+    ImGui::Dummy({-1.0f, 5.0f});
+
     //Statistics
     isStatisticsHeaderExpanded = ImGui::CollapsingHeader("Memory Statistics");
     if(isStatisticsHeaderExpanded)
@@ -278,9 +348,14 @@ void CTMPerformanceMEMScreen::OnUpdate()
     double totalMemoryInUseInGB = UpdateMemoryStatus();
     PlotPoint(GetCurrentXAxisValue(), totalMemoryInUseInGB);
 
-    //If the statistics header is collapsed, then only update the paged / cached memory data
-    if(isStatisticsHeaderExpanded)
+    //If the statistics header or memory composition header is collapsed, then only update the paged and cached memory data
+    //Cuz the memory composition also uses some data from this function
+    if(isStatisticsHeaderExpanded || isMemoryCompositionExpanded)
         (void)UpdateMemoryPerfInfo(); //No need for return value
+    
+    //Rest of the memory composition stuff not handled by the 'UpdateMemoryPerfInfo'
+    if(isMemoryCompositionExpanded)
+        UpdateMemoryCompositionInfo();
 }
 
 //--------------------RENDER FUNCTIONS--------------------
@@ -363,7 +438,7 @@ void CTMPerformanceMEMScreen::RenderPerRAMInfo(MemoryInfo& memoryInfo)
     ImGui::TableSetColumnIndex(0);
     ImGui::TextUnformatted("Clock Speed");
     ImGui::TableSetColumnIndex(1);
-    ImGui::Text("%dMhz", memoryInfo.configClockSpeed);
+    ImGui::Text("%dMHz", memoryInfo.configClockSpeed);
 
     ImGui::TableNextRow();
 
@@ -382,6 +457,83 @@ void CTMPerformanceMEMScreen::RenderPerRAMInfo(MemoryInfo& memoryInfo)
     ImGui::Unindent();
 }
 
+void CTMPerformanceMEMScreen::RenderMemoryComposition()
+{
+    //Total available region. The composition is going to span the whole width of window
+    ImVec2 windowSize = ImGui::GetContentRegionAvail();
+
+    //Having to write out how to check memory usage for each block cuz people might be confused (aka dumb ;))
+    ImGui::TextUnformatted("Tip: Hover over the bar to check Memory Composition for each block.");
+
+    //Get memory info available in metricsVector. The only difference is, we will convert everything to MB if not in MB already
+    double memoryHardwareReserved = std::get<double>(metricsVector[static_cast<std::size_t>(MetricsVectorIndex::HardwareReservedMemory)].second),
+           memoryInUse     = CTM_GB_TO_MB(std::get<double>(metricsVector[static_cast<std::size_t>(MetricsVectorIndex::MemoryUsage)].second)),
+           memoryStandby   = CTM_GB_TO_MB(std::get<double>(metricsVector[static_cast<std::size_t>(MetricsVectorIndex::CachedData)].second)),
+           memoryTotal     = CTM_GB_TO_MB(std::get<double>(metricsVector[static_cast<std::size_t>(MetricsVectorIndex::InstalledMemory)].second)),
+           memoryRemaining = memoryTotal - (memoryInUse + memoryStandby + memoryModified + memoryHardwareReserved);
+
+    //Needed this approach so i could do a loop over each value and stuff, instead of writing code a billion times for each value
+    std::pair<double, const char*> memoryValues[] = {
+        std::make_pair(memoryHardwareReserved, "Reserved Memory:\nMemory set aside for hardware devices and other system functions."),
+        std::make_pair(memoryInUse, "In Use Memory:\nMemory actively used by the system, including running applications and services."),
+        std::make_pair(memoryModified, "Modified Memory:\nMemory that can be reused after flushing its contents to disk."),
+        std::make_pair(memoryStandby, "Standby Memory:\nMemory that holds cached data and code, ready to be used when needed."),
+        std::make_pair(memoryRemaining, "Remaining Memory:\nUnused memory, available for allocation or future processes.")
+    };
+
+    //Some cool constants useful
+    constexpr float        barHeight        = 80.0f;
+    constexpr std::uint8_t memoryValuesSize = sizeof(memoryValues) / sizeof(memoryValues[0]);
+
+    //Initialize cursorPos and drawList (this is what will be used to draw the graph)
+    ImVec2      cursorPos     = ImGui::GetCursorScreenPos(),
+                prevCursorPos = cursorPos;
+    ImDrawList* drawList      = ImGui::GetWindowDrawList();
+
+    for(std::uint8_t i = 0; i < memoryValuesSize; i++)
+    {
+        auto&&[value, info] = memoryValues[i];
+        
+        //Calculate the width we need to plot for a specific block
+        double memoryValueWidth = ((value / memoryTotal) * (double)windowSize.x);
+
+        //For the last 2 blocks, just like task manager, display only border
+        //Also not bothering changing any colors rn. Maybe in future
+        if(i > memoryValuesSize - 3)
+            RenderMemoryCompositionBarBorder(drawList, cursorPos, memoryValueWidth, barHeight, IM_COL32(145, 114, 232, 200), 1.0f);
+        else
+            RenderMemoryCompositionBarFilled(drawList, cursorPos, memoryValueWidth, barHeight,
+                                            IM_COL32(145, 114, 232, 150), IM_COL32(145, 114, 232, 200), 1.0f);
+        
+        //Check if we hovered over a specific block of memory. If we are, display the info of that block
+        if(ImGui::IsMouseHoveringRect(prevCursorPos, {prevCursorPos.x + (float)memoryValueWidth, prevCursorPos.y + barHeight}))
+            ImGui::SetTooltip("%s\n\nUsage: %.2lfMB", info, value);
+        
+        //'cursorPos' is directly manipulated by 'RenderMemoryCompositionBarFilled'. Hence we need to keep track of previous position for hover check
+        prevCursorPos = cursorPos;
+    }
+
+    //Drawing stuff via DrawList doesn't affect the space it takes. Hence we need to add a dummy node to create some space for it-
+    //-so it doesn't overlap with other items
+    //Also the -7.0f is just some random constant to adjust height so it doesn't add too much space at the bottom
+    ImGui::Dummy({-1, barHeight - 7.0f});
+}
+
+void CTMPerformanceMEMScreen::RenderMemoryCompositionBarFilled(ImDrawList* drawList, ImVec2& cursorPos, float usageWidth,
+                                float barHeight, ImU32 fillColor, ImU32 borderColor, float borderThickness)
+{
+    drawList->AddRectFilled(cursorPos, {cursorPos.x + usageWidth, cursorPos.y + barHeight}, fillColor);
+    drawList->AddRect(cursorPos, {cursorPos.x + usageWidth, cursorPos.y + barHeight}, borderColor, 0.0f, 0, borderThickness);
+    cursorPos.x += usageWidth;
+}
+
+void CTMPerformanceMEMScreen::RenderMemoryCompositionBarBorder(ImDrawList* drawList, ImVec2& cursorPos, float usageWidth,
+                                float barHeight, ImU32 borderColor, float borderThickness)
+{
+    drawList->AddRect(cursorPos, {cursorPos.x + usageWidth, cursorPos.y + barHeight}, borderColor, 0.0f, 0, borderThickness);
+    cursorPos.x += usageWidth;
+}
+
 //--------------------UPDATE FUNCTIONS--------------------
 double CTMPerformanceMEMScreen::UpdateMemoryStatus()
 {
@@ -395,15 +547,15 @@ double CTMPerformanceMEMScreen::UpdateMemoryStatus()
     }
 
     //Recalc the currently used memory and available memory
-    double totalAvailableMemoryInGB = memStatus.ullAvailPhys / BToGB;
+    double totalAvailableMemoryInGB = CTM_BYTES_TO_GB(memStatus.ullAvailPhys);
     double totalMemoryInUseInGB     = totalOSUsableMemoryInGB - totalAvailableMemoryInGB;
 
     metricsVector[static_cast<std::size_t>(MetricsVectorIndex::MemoryUsage)].second     = totalMemoryInUseInGB;
     metricsVector[static_cast<std::size_t>(MetricsVectorIndex::AvailableMemory)].second = totalAvailableMemoryInGB;
 
     //Recalc the committed memory. Chances are, 'memStatus.ullTotalPageFile' may change due to some system settings
-    totalPageFile = memStatus.ullTotalPageFile / BToGB;
-    double committedPageFile = totalPageFile - memStatus.ullAvailPageFile / BToGB;
+    totalPageFile = CTM_BYTES_TO_GB(memStatus.ullTotalPageFile);
+    double committedPageFile = totalPageFile - CTM_BYTES_TO_GB(memStatus.ullAvailPageFile);
     
     metricsVector[static_cast<std::size_t>(MetricsVectorIndex::CommittedMemory)].second = committedPageFile;
 
@@ -420,16 +572,40 @@ bool CTMPerformanceMEMScreen::UpdateMemoryPerfInfo()
     }
 
     //1) Cached data in GB
-    double cachedData = (perfInfo.SystemCache * perfInfo.PageSize) / BToGB;
+    double cachedData = CTM_BYTES_TO_GB(perfInfo.SystemCache * perfInfo.PageSize);
     metricsVector[static_cast<std::size_t>(MetricsVectorIndex::CachedData)].second = cachedData;
 
     //2) Paged pool in GB
-    double pagedPool = (perfInfo.KernelPaged * perfInfo.PageSize) / BToGB;
+    double pagedPool = CTM_BYTES_TO_GB(perfInfo.KernelPaged * perfInfo.PageSize);
     metricsVector[static_cast<std::size_t>(MetricsVectorIndex::PagedPool)].second = pagedPool;
     
     //3) Non-Paged pool in GB
-    double nonPagedPool = (perfInfo.KernelNonpaged * perfInfo.PageSize) / BToGB;
+    double nonPagedPool = CTM_BYTES_TO_GB(perfInfo.KernelNonpaged * perfInfo.PageSize);
     metricsVector[static_cast<std::size_t>(MetricsVectorIndex::NonPagedPool)].second = nonPagedPool;
 
     return true;
+}
+
+void CTMPerformanceMEMScreen::UpdateMemoryCompositionInfo()
+{
+    //Query the PDH again, this time in the hopes of collecting value
+    //Ofc if you can't then just display an error
+    PDH_STATUS status = PdhCollectQueryData(hQuery);
+    if(status != ERROR_SUCCESS)
+    {
+        CTM_LOG_ERROR("Failed to collect data from PDH. Error code: ", status);
+        return;
+    }
+    //Good... we queried the data. Now get the actual value as a 64bit integer. We will convert it to 'double' later anyways
+    PDH_FMT_COUNTERVALUE modifiedMemoryValue;
+    
+    status = PdhGetFormattedCounterValue(hModifiedMemoryCounter, PDH_FMT_LARGE, nullptr, &modifiedMemoryValue);
+    if(status != ERROR_SUCCESS)
+    {
+        CTM_LOG_ERROR("Failed to format the value queried from PDH. Error code: ", status);
+        return;
+    }
+
+    //OK GOOD. Everything works. Convert the value to MB (currently its in bytes)
+    memoryModified = CTM_BYTES_TO_MB(modifiedMemoryValue.largeValue);
 }
