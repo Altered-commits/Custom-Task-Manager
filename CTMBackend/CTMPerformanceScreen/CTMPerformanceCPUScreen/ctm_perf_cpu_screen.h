@@ -31,7 +31,7 @@ typedef NTSTATUS(WINAPI* NtQuerySystemInformation_t)
 //'using' makes my life alot easier... alr ik this is getting annoying. BUT I WON'T STOP ;)
 using ProcessorPerformanceVector = std::vector<SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION>;
 
-class CTMPerformanceCPUScreen : public CTMBasePerformanceScreen, protected CTMPerformanceUsageGraph
+class CTMPerformanceCPUScreen : public CTMBasePerformanceScreen, protected CTMPerformanceUsageGraph<1, double>
 {
 public:
     CTMPerformanceCPUScreen();

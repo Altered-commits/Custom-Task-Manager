@@ -29,7 +29,7 @@ struct MemoryInfo
 //'using' makes my life alot easier
 using MemoryInfoMap = std::unordered_map<std::string, MemoryInfo>;
 
-class CTMPerformanceMEMScreen : public CTMBasePerformanceScreen, protected CTMPerformanceUsageGraph
+class CTMPerformanceMEMScreen : public CTMBasePerformanceScreen, protected CTMPerformanceUsageGraph<1, double>
 {
 public:
     CTMPerformanceMEMScreen();

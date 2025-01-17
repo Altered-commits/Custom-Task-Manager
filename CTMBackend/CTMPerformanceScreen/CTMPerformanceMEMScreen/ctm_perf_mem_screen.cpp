@@ -321,7 +321,7 @@ void CTMPerformanceMEMScreen::OnRender()
 
     //Plotting memory usage, this result is pretty much the same as that of Task Manager
     ImGui::Text("%.2lfGB", totalOSUsableMemoryInGB);
-    PlotUsageGraph("Memory in use (Over 60 Seconds)", {-1, 300}, 0.0f, totalOSUsableMemoryInGB, { 0.588f, 0.463f, 0.929f, 1.0f });
+    PlotUsageGraph("Memory in use (Over 60 Seconds)", {-1.0f, 300.0f}, 0.0, totalOSUsableMemoryInGB, { 0.588f, 0.463f, 0.929f, 1.0f });
     ImGui::TextUnformatted("0GB");
 
     //Give some spacing vertically before displaying CPU Info
@@ -349,7 +349,7 @@ void CTMPerformanceMEMScreen::OnUpdate()
 {
     UpdateXAxis();
     double totalMemoryInUseInGB = UpdateMemoryStatus();
-    PlotPoint(GetCurrentXAxisValue(), totalMemoryInUseInGB);
+    PlotYAxis(totalMemoryInUseInGB);
 
     //If the statistics header or memory composition header is collapsed, then only update the paged and cached memory data
     //Cuz the memory composition also uses some data from this function
