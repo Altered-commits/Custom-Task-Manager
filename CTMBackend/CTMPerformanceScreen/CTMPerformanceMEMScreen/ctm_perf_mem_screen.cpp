@@ -316,7 +316,6 @@ void CTMPerformanceMEMScreen::CTMDestructorCleanupPDH()
 //--------------------MAIN RENDER AND UPDATE FUNCTIONS--------------------
 void CTMPerformanceMEMScreen::OnRender()
 {
-    ImVec2 windowSize              = ImGui::GetWindowSize();
     double totalOSUsableMemoryInGB = std::get<double>(metricsVector[static_cast<std::size_t>(MetricsVectorIndex::OSUsableMemory)].second);
 
     //Plotting memory usage, this result is pretty much the same as that of Task Manager
@@ -324,7 +323,7 @@ void CTMPerformanceMEMScreen::OnRender()
     PlotUsageGraph("Memory in use (Over 60 Seconds)", {-1.0f, 300.0f}, 0.0, totalOSUsableMemoryInGB, { 0.588f, 0.463f, 0.929f, 1.0f });
     ImGui::TextUnformatted("0GB");
 
-    //Give some spacing vertically before displaying CPU Info
+    //Give some spacing vertically before displaying Memory Info
     ImGui::Dummy({-1.0f, 15.0f});
 
     //Add some padding to the frame (see the blank space around the text of the collapsable header)

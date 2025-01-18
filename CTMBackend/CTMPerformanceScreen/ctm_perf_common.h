@@ -12,7 +12,7 @@
  */
 
 //'using' makes my life alot easier
-using MetricsValue  = std::variant<DWORD, double, const char*>;
+using MetricsValue  = std::variant<DWORD, float, double, const char*>;
 using MetricsVector = std::vector<std::pair<const char*, MetricsValue>>;
 
 //Few defines for WMI querying because the function querying wmi looks cluttered, an absolute mess. Other files will just use proper functions

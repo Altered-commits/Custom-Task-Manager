@@ -69,7 +69,7 @@ public:
 
 //Its simply a class to be inherited by 'screen' classes (aka (pages/screens) like Cpu Usage, etc)
 //It contains function and variables to plot graph which is common to all screens
-//Templating it as it maybe used for plotting multiple plots on a single graph.
+//Templating it as it maybe used for plotting multiple plots on a single graph. Template param PlotType added to switch between float and double
 template<std::size_t NumOfPlots, typename PlotType>
 class CTMPerformanceUsageGraph
 {

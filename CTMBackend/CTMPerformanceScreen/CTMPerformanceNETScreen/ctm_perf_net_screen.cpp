@@ -20,9 +20,27 @@ CTMPerformanceNETScreen::~CTMPerformanceNETScreen()
 //--------------------MAIN RENDER AND UPDATE FUNCTIONS--------------------
 void CTMPerformanceNETScreen::OnRender()
 {
-    ImGui::Text("%hd%s", CTM_GET_UINT16_LSB_13_BITS(displayMaxYLimit), dataUnits[CTM_GET_UINT16_MSB_3_BITS(displayMaxYLimit)]);
+    //Decode the max y limit into value and type
+    float decodedMaxLimit = 0.0f; std::uint8_t decodedType = 0;
+    DecodeNetworkDataWithType(displayMaxYLimit, decodedType, decodedMaxLimit);
+
+    //1) Graph
+    ImGui::Text("%.2f %s", decodedMaxLimit, dataUnits[decodedType]);
     PlotMultiUsageGraph("Network Usage (Over 60 sec)", "Sent Bytes", "Recieved Bytes", 0, GetYAxisMaxValue(), {-1, 300}, graphColors);
-    ImGui::TextUnformatted("0KB");
+    ImGui::TextUnformatted("0 KB");
+
+    //Give some spacing vertically before displaying Network Info
+    ImGui::Dummy({-1.0f, 15.0f});
+
+    //Add some padding to the frame (see the blank space around the text of the collapsable header)
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 10.0f));
+
+    //2) Network table with data
+    isStatisticsHeaderExpanded = ImGui::CollapsingHeader("Network Statistics");
+    if(isStatisticsHeaderExpanded)
+        RenderNetworkStatistics();
+    
+    ImGui::PopStyleVar();
 }
 
 void CTMPerformanceNETScreen::OnUpdate()
@@ -38,7 +56,7 @@ void CTMPerformanceNETScreen::OnUpdate()
     UpdateYAxisToMaxValue();
 
     //Get the max y-axis limit and just convert it to some good readable unit
-    displayMaxYLimit = ConvertNetworkDataUnit(GetYAxisMaxValue());
+    displayMaxYLimit = EncodeNetworkDataWithType(GetYAxisMaxValue());
 }
 
 //--------------------CONSTRUCTOR AND DESTRUCTOR FUNCTIONS--------------------
@@ -100,6 +118,46 @@ void CTMPerformanceNETScreen::CTMDestructorCleanupPDH()
     resourceGuard.UnregisterCleanupFunction(pdhCleanupFunctionName);
 }
 
+//--------------------RENDER FUNCTIONS--------------------
+void CTMPerformanceNETScreen::RenderNetworkStatistics()
+{
+    if(ImGui::BeginTable("NETStatisticsTable", 2, ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_BordersInnerV))
+    {
+        ImGui::TableSetupColumn("Metrics");
+        ImGui::TableSetupColumn("Values");
+        ImGui::TableHeadersRow();
+
+        //Basic Network Info
+        for(std::size_t i = 0; i < metricsVector.size(); i++)
+        {
+            auto&&[metric, value] = metricsVector[i];
+
+            ImGui::TableNextRow();
+            //Metrics column
+            ImGui::TableSetColumnIndex(0);
+            ImGui::TextUnformatted(metric);
+            //Value column
+            ImGui::TableSetColumnIndex(1);
+            std::visit([this](auto&& arg)
+            {
+                using T = std::decay_t<decltype(arg)>;
+            
+                //Network usage, 3 LSB will represent its type (KB, MB...) and rest represent the actual value
+                if constexpr(std::is_same_v<T, float>)
+                {
+                    float decodedNetworkData = 0.0f; std::uint8_t decodedType = 0;
+
+                    DecodeNetworkDataWithType(arg, decodedType, decodedNetworkData);
+                    ImGui::Text("%.2f %s", decodedNetworkData, dataUnits[decodedType]);
+                }
+
+            }, value);
+        }
+
+        ImGui::EndTable();
+    }
+}
+
 //--------------------UPDATE FUNCTIONS--------------------
 void CTMPerformanceNETScreen::UpdateNetworkUsage()
 {
@@ -111,15 +169,16 @@ void CTMPerformanceNETScreen::UpdateNetworkUsage()
         return;
     }
 
-    //SECOND: Get the data from all the counters... yeah
+    //SECOND: Get the data from all the counters and throw it straight in metricsVector
+    //IMP: There maybe some data loss due to encoding, but its negligible in most cases so yeah
 
-    //1) Recieved Bytes (Dynamically converted to some unit like B, KB, MB... and so on)
+    //1) Recieved Bytes (Dynamically converted to some unit like KB, MB... and so on)
     totalRecBytesKB = GetPdhFormattedNetworkData(hNetworkRecieved);
-    displayRecBytes = ConvertNetworkDataUnit(totalRecBytesKB);
+    metricsVector[static_cast<std::size_t>(MetricsVectorIndex::RecievedData)].second = EncodeNetworkDataWithType(totalRecBytesKB);
 
-    //2) Sent Bytes (Dynamically converted to some unit like B, KB, MB... and so on)
+    //2) Sent Bytes (Dynamically converted to some unit like KB, MB... and so on)
     totalSentBytesKB = GetPdhFormattedNetworkData(hNetworkSent);
-    displaySentBytes = ConvertNetworkDataUnit(totalSentBytesKB);
+    metricsVector[static_cast<std::size_t>(MetricsVectorIndex::SentData)].second = EncodeNetworkDataWithType(totalSentBytesKB);
     
     //Uhh yeah, what else am i supposed to do. We are done
 }
@@ -157,31 +216,46 @@ double CTMPerformanceNETScreen::GetPdhFormattedNetworkData(PDH_HCOUNTER hNetwork
     return (retTotalBytes / 1024.0);
 }
 
-std::uint16_t CTMPerformanceNETScreen::ConvertNetworkDataUnit(double inBytes)
+float CTMPerformanceNETScreen::EncodeNetworkDataWithType(double inData)
 {
     /*
-     * The converted value will range somewhere from 1 to 1023 until it gets converted again to higher type.
-     * So practically, the return value should never exceed std::uint16_t 
+     * The converted value will range somewhere from 0 to 1023 until it gets converted again to higher type.
+     * So it won't take that many bits in practice
      */
     //Base case
-    if(inBytes <= 0)
+    if(inData <= 0)
         return 0;
 
     //End deduced data type
     std::uint8_t calcUnitIndex = 0;
 
     //Scale down the size using simple division. This outperforms log + pow implementation, atleast on my system
-    while(inBytes >= 1024.0 && calcUnitIndex < dataUnitsSize - 1)
+    while(inData >= 1024.0 && calcUnitIndex < dataUnitsSize - 1)
     {
-        inBytes /= 1024.0;
+        inData /= 1024.0;
         ++calcUnitIndex;
     }
 
-    //Now that the value has been converted, the value can be casted to uint16 without much data loss
-    std::uint16_t convertedBytes = static_cast<std::uint16_t>(inBytes);
+    //Now that the value has been converted, the value can be casted to float without much data loss
+    CTMFloatView fv;
+    fv.floatView = static_cast<float>(inData);
 
-    //Set the top 3 bits to contain its data type (KB, MB... and so on)
-    CTM_SET_UINT16_MSB_3_BITS(convertedBytes, calcUnitIndex);
+    //Set the 3 bits in mantissa (furthest from exponent) to contain its data type (KB, MB... and so on)
+    fv.bitView = (fv.bitView & ~0x7) | calcUnitIndex;
 
-    return convertedBytes;
+    return fv.floatView;
+}
+
+void CTMPerformanceNETScreen::DecodeNetworkDataWithType(float inData, std::uint8_t& outType, float& outData)
+{
+    //Create a float view of data
+    CTMFloatView fv;
+    fv.floatView = inData;
+    
+    //Extract the 3 least significant bits of mantissa
+    outType = (fv.bitView & 0x7);
+
+    //Clear the last three bits and retrive the data
+    fv.bitView &= ~0x7;
+    outData = fv.floatView;
 }

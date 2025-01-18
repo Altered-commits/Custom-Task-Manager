@@ -9,6 +9,7 @@
 #include <Pdh.h>
 #include <PdhMsg.h>
 //My stuff
+#include "../ctm_perf_common.h"
 #include "../ctm_perf_graph.h"
 #include "../../ctm_constants.h"
 #include "../../ctm_base_state.h"
@@ -17,10 +18,13 @@
 //Stdlib stuff
 #include <vector>
 
-//Bit mask for data units. Works for uint16 only (to embed network data unit in the value itself)
-#define CTM_SET_UINT16_MSB_3_BITS(value, setterValue) value = ((value & 0b0001111111111111) | ((setterValue & 0x07) << 13))
-#define CTM_GET_UINT16_MSB_3_BITS(value)              ((value >> 13) & 0x07)
-#define CTM_GET_UINT16_LSB_13_BITS(value)             (value & 0b0001111111111111)
+//Union for float manipulation. Used for graph value representation (10.24KB, 1.42MB and so on)
+//There is no point in using 'double' as the value isn't going to be that big
+union CTMFloatView
+{
+    float         floatView;
+    std::uint32_t bitView;  //32bit representation of float (1(sign) 11111111(exponent) 11111111111111111111111(mantissa))
+};
 
 class CTMPerformanceNETScreen : public CTMBasePerformanceScreen, protected CTMPerformanceUsageGraph<2, double>
 {
@@ -36,12 +40,16 @@ private: //Constructor and Destructor functions
     bool CTMConstructorInitPDH();
     void CTMDestructorCleanupPDH();
 
+private: //Render functions
+    void RenderNetworkStatistics();
+
 private: //Update functions
     void UpdateNetworkUsage();
 
 private: //Helper functions
-    double        GetPdhFormattedNetworkData(PDH_HCOUNTER);
-    std::uint16_t ConvertNetworkDataUnit(double);
+    double GetPdhFormattedNetworkData(PDH_HCOUNTER);
+    float  EncodeNetworkDataWithType(double);
+    void   DecodeNetworkDataWithType(float, std::uint8_t&, float&);
 
 private: //Resource guard
     CTMCriticalResourceGuard& resourceGuard = CTMCriticalResourceGuard::GetInstance();
@@ -52,15 +60,20 @@ private: //PDH variables
     PDH_HQUERY   hQuery = nullptr;
     PDH_HCOUNTER hNetworkSent, hNetworkRecieved;
 
+private: //Collapsable header variables
+    bool isStatisticsHeaderExpanded = false;
+
 private: //Network info variables
     //Used with 'PdhGetFormattedCounterArrayA'
     DWORD             networkInfoBufferSize = 0;
     DWORD             networkInfoItemCount  = 0;
     std::vector<BYTE> networkInfoBuffer;
+
+private: //Stuff which cannot be in metricsVector (as i don't want to display them)
     //Value used for graph. Represented in KB
     double totalSentBytesKB = 0, totalRecBytesKB = 0;
-    //Value used for displaying. Dynamically changes its unit
-    std::uint16_t displaySentBytes = 0, displayRecBytes = 0, displayMaxYLimit = 0;
+    //Value used for displaying graph y limits. Dynamically changes its unit
+    float displayMaxYLimit = 0;
 
 private: //Misc
     //In multi graph, 0th index represents shaded plot, 1st represents line plot
@@ -72,6 +85,17 @@ private: //Dynamically decide network values unit
     //With 64 bit unsigned int, max u can go is 16 Exabyte. Hence the 'EB'
     constexpr static const char*  dataUnits[]   = { "KB", "MB", "GB", "TB", "PB", "EB" };
     constexpr static std::uint8_t dataUnitsSize = sizeof(dataUnits) / sizeof(dataUnits[0]);
+
+private: //The stuff to actually display
+    enum class MetricsVectorIndex : std::uint8_t 
+    {
+        SentData, RecievedData
+    };
+
+    MetricsVector metricsVector = {
+                                    std::make_pair("Sent Data",              0.0),
+                                    std::make_pair("Recieved Data",          0.0)
+                                };
 };
 
 #endif
