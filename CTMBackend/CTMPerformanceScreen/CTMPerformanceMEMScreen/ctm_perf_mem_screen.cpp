@@ -218,12 +218,12 @@ bool CTMPerformanceMEMScreen::CTMConstructorQueryWMI()
         CTM_WMI_START_CONDITION(FAILED(hres) || bankLabel.vt != VT_BSTR || !bankLabel.bstrVal)
             CTM_WMI_ERROR_RET("Failed to get Bank Label. Cannot get the Memory Slot to display info.")
         CTM_WMI_ELSE_CONDITION()
-            CTM_WMI_WSTOS_WITH_ERROR_CONT(wmiManager, &bankLabelString[bankLabelOffset - 1], bankLabelSize - bankLabelOffset,
+            CTM_WMI_WSTOS_WITH_ERROR_CONT(&bankLabelString[bankLabelOffset - 1], bankLabelSize - bankLabelOffset,
                                 bankLabel.bstrVal, "Failed to copy Bank Label.")
         CTM_WMI_END_CONDITION()
 
-        //Goood, we got the key for the RAM / Memory info map, create an entry in the map first and get its reference
-        auto& memoryInfo = memoryInfoMap[bankLabelString];
+        //Goood, we got the key for the RAM / Memory info vector. Create an entry in the vector first, then get its reference
+        auto&&[_, memoryInfo] = memoryInfoVector.emplace_back(bankLabelString, MemoryInfo{});
 
         //2) Capacity
         hres = pClassObject->Get(L"Capacity", 0, &memoryCapacity, NULL, NULL);
@@ -255,7 +255,7 @@ bool CTMPerformanceMEMScreen::CTMConstructorQueryWMI()
         CTM_WMI_START_CONDITION(FAILED(hres))
             CTM_WMI_ERROR_RET("Failed to get Stuff.");
         CTM_WMI_ELSE_CONDITION()
-            CTM_WMI_WSTOS_WITH_ERROR(wmiManager, memoryInfo.manufacturer, manufacturer.bstrVal, "Failed to get RAM manufacturer.")
+            CTM_WMI_WSTOS_WITH_ERROR(memoryInfo.manufacturer, manufacturer.bstrVal, "Failed to get RAM manufacturer.")
         CTM_WMI_END_CONDITION()
 
         pClassObject.Reset();
@@ -403,7 +403,7 @@ void CTMPerformanceMEMScreen::RenderMemoryStatistics()
         }
 
         //Any specific 'RAM stick' detail is showed below
-        for(auto &&[key, info] : memoryInfoMap)
+        for(auto &&[key, info] : memoryInfoVector)
         {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);

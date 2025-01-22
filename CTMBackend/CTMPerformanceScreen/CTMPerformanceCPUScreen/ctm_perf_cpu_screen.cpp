@@ -95,7 +95,7 @@ bool CTMPerformanceCPUScreen::CTMConstructorQueryWMI()
             CTM_WMI_ERROR_MV(metricsVector, MetricsVectorIndex::CPUName, "Failed to get CPU Name.")
         CTM_WMI_ELSE_CONDITION()
             //Succeeded in getting the CPU name, try converting wstring to string hoping it doesn't fail
-            CTM_WMI_WSTOS_WITH_MV(wmiManager, cpuNameBuffer, cpuName.bstrVal,
+            CTM_WMI_WSTOS_WITH_MV(cpuNameBuffer, cpuName.bstrVal,
                                 metricsVector, MetricsVectorIndex::CPUName, "Failed to convert CPU Name to multibyte string.")
         CTM_WMI_END_CONDITION()
 
@@ -105,7 +105,7 @@ bool CTMPerformanceCPUScreen::CTMConstructorQueryWMI()
             CTM_WMI_ERROR_MV(metricsVector, MetricsVectorIndex::VendorName, "Failed to get CPU Vendor Name.")
         CTM_WMI_ELSE_CONDITION()
             //Succeeded in getting the Vendor name, copy it to 'vendorNameBuffer', leave the last byte just in case
-            CTM_WMI_WSTOS_WITH_MV(wmiManager, vendorNameBuffer, vendorName.bstrVal,
+            CTM_WMI_WSTOS_WITH_MV(vendorNameBuffer, vendorName.bstrVal,
                                 metricsVector, MetricsVectorIndex::VendorName, "Failed to convert Vendor Name to multibyte string.")
         CTM_WMI_END_CONDITION()
 

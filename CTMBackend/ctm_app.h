@@ -2,6 +2,7 @@
 #define CTM_APP_HPP
 
 //Windows stuff
+#include <WinSock2.h>
 #include <windows.h>
 #include <d3d11.h>
 #include <windowsx.h>

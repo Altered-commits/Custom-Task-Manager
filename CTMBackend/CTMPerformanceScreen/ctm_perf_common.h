@@ -2,13 +2,15 @@
 #define CTM_PERFORMANCE_COMMON_HPP
 
 //Windows stuff
-#include <minwindef.h>
+#include <windows.h>
 //Stdlib stuff
+#include <memory>
+#include <cstring>
 #include <variant>
 #include <vector>
 
 /*
- * Houses the most common macros and typedefs for performance pages like CPU, Memory, etc.
+ * Houses the most common macros, typedefs and classes for performance pages like CPU, Memory, etc.
  */
 
 //'using' makes my life alot easier
@@ -23,24 +25,31 @@ using MetricsVector = std::vector<std::pair<const char*, MetricsValue>>;
 #define CTM_WMI_ERROR_RET(...) CTM_LOG_ERROR(__VA_ARGS__);\
                                return false;
 
-#define CTM_WMI_WSTOS_CONDITION(wmi, outBuffer, outBufferSize, inBuffer) \
-                            if(!wmi.WSToSWithEllipsisTruncation(outBuffer, inBuffer, outBufferSize))
+#define CTM_WMI_WSTOS_CONDITION(outBuffer, outBufferSize, inBuffer) \
+                            if(!CTMPerformanceCommon::WSToSWithEllipsisTruncation(outBuffer, inBuffer, outBufferSize))
 
-#define CTM_WMI_WSTOS_WITH_MV(wmi, outBuffer, inBuffer, mv, idx, errorMsg) \
-                    CTM_WMI_WSTOS_CONDITION(wmi, outBuffer, sizeof(outBuffer), inBuffer)\
+#define CTM_WMI_WSTOS_WITH_MV(outBuffer, inBuffer, mv, idx, errorMsg) \
+                    CTM_WMI_WSTOS_CONDITION(outBuffer, sizeof(outBuffer), inBuffer)\
                     { CTM_WMI_ERROR_MV(mv, idx, errorMsg, " Error code: ", GetLastError()) }
 
-#define CTM_WMI_WSTOS_WITH_ERROR(wmi, outBuffer, inBuffer, errorMsg) \
-                    CTM_WMI_WSTOS_CONDITION(wmi, outBuffer, sizeof(outBuffer), inBuffer)\
+#define CTM_WMI_WSTOS_WITH_ERROR(outBuffer, inBuffer, errorMsg) \
+                    CTM_WMI_WSTOS_CONDITION(outBuffer, sizeof(outBuffer), inBuffer)\
                     { CTM_LOG_ERROR(errorMsg, " Error code: ", GetLastError()); }
 
-#define CTM_WMI_WSTOS_WITH_ERROR_CONT(wmi, outBuffer, outBufferSize, inBuffer, errorMsg) \
-                    CTM_WMI_WSTOS_CONDITION(wmi, outBuffer, outBufferSize, inBuffer)\
+#define CTM_WMI_WSTOS_WITH_ERROR_CONT(outBuffer, outBufferSize, inBuffer, errorMsg) \
+                    CTM_WMI_WSTOS_CONDITION(outBuffer, outBufferSize, inBuffer)\
                     { CTM_LOG_ERROR(errorMsg, " Error code: ", GetLastError()); continue; }
 
 #define CTM_WMI_START_CONDITION(cond)  if(cond) {
 #define CTM_WMI_ELIF_CONDITION(cond)   } else if(cond) {
 #define CTM_WMI_ELSE_CONDITION()       } else {
 #define CTM_WMI_END_CONDITION()        }
+
+//Some common functions enclosed in class (almost like a namespace except i'm not using namespace because i'm an idiot)
+class CTMPerformanceCommon
+{
+public:
+    static bool WSToSWithEllipsisTruncation(PSTR, PWSTR, int, std::size_t = 0);
+};
 
 #endif

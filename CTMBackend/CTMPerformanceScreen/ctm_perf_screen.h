@@ -2,6 +2,7 @@
 #define CTM_PERF_MENU_HPP
 
 //Windows stuff
+#include <WinSock2.h>
 #include <windows.h>
 //ImGui stuff
 #include "../../ImGUI/imgui.h"

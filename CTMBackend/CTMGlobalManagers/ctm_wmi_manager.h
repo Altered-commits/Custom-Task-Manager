@@ -37,9 +37,6 @@ public:
     IWbemServices*        GetServices();
     IEnumWbemClassObject* GetEnumeratorFromQuery(PCWSTR);
 
-    //--------------------HELPER FUNCTIONS FOR BSTR CONVERSION--------------------
-    bool WSToSWithEllipsisTruncation(PSTR, BSTR, int);
-
 private: //Constructors and Destructors
     CTMWMIManager();
     ~CTMWMIManager();

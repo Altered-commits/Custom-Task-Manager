@@ -2,6 +2,7 @@
 #define CTM_APP_CONTENT_HPP
 
 //Windows stuff
+#include <WinSock2.h>
 #include <windows.h>
 //ImGui stuff
 #include "../ImGUI/imgui.h"

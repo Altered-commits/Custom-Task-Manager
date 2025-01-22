@@ -15,19 +15,20 @@
 #include "../../CTMGlobalManagers/ctm_critical_resource_guard.h"
 //Stdlib stuff
 #include <string>
-#include <unordered_map>
+#include <vector>
 
 //Used for grouping of RAM info
 struct MemoryInfo
 {
-    char         manufacturer[32] = { 0 };
+    //No matter how you align these members, there will always be 4 extra bytes of padding due to int32 being 4 bytes only
     double       capacity         = 0.0;
-    int32_t      configClockSpeed = 0;
     const char*  formFactor       = nullptr;
+    char         manufacturer[32] = { 0 };
+    int32_t      configClockSpeed = 0;
 };
 
 //'using' makes my life alot easier
-using MemoryInfoMap = std::unordered_map<std::string, MemoryInfo>;
+using MemoryInfoVector = std::vector<std::pair<std::string, MemoryInfo>>;
 
 class CTMPerformanceMEMScreen : public CTMBasePerformanceScreen, protected CTMPerformanceUsageGraph<1, double>
 {
@@ -112,7 +113,7 @@ private: //Memory Variables
                                 };
 
     //Tree like structure for each RAM stick
-    MemoryInfoMap memoryInfoMap;
+    MemoryInfoVector memoryInfoVector;
 };
 
 #endif

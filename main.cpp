@@ -1,5 +1,5 @@
 /* READ THIS BEFORE ANYTHING ELSE PLEASE
- *
+ * 1) Dated: 04-12-2024
  * I'm going to be using higher privileges for this app just so i can use 'OpenProcess' to collect information.
  * If i can't use 'OpenProcess', i will fallback to 'NtQuerySystemInformation' hoping it gives me information.
  * Atleast in my current system, the struct (SYSTEM_PROCESS_INFORMATION) returned by the 'NtQuerySystemInformation' has a lot of values as 'reserved'.
@@ -9,10 +9,16 @@
  * But the reason why i'm still using 'OpenProcess' is to avoid using 'reserved' values as much as possible.
  * Rest idk if i'm doing stuff right, i am still new to winapi and windows app programming stuff.
  * 
+ * 2) Dated: 19-01-2025
+ * Without including <WinSock2.h> everywhere, it was giving me error on MSVC but somehow it worked on MinGW. Idk
+ * 
+ * 3) Dated: 17-01-2025
  * Also forgive me for writing really bad code, honestly i'm running low on time and i have like other works as well ):
  * 
+ * 4) Dated: 04-01-2025
  * PS: I tried my absolute best to make sure this works in MSVC and MinGW.
  * 
+ * 5) Dated: 17-01-2025
  * IMP PS PS: Also me using various stuff instead of simply sticking to PDH is on purpose. Wanted to learn alot of stuff about Windows functionality.
  *           -Also not every info can be queried by PDH
  */
