@@ -105,8 +105,8 @@ private: //The stuff to actually display
     enum class MetricsVectorIndex : std::uint8_t { SentData, RecievedData };
 
     MetricsVector metricsVector = {
-                                    std::make_pair("Sent Data",              0.0),
-                                    std::make_pair("Recieved Data",          0.0)
+                                    std::make_pair("Sent Data",     0.0),
+                                    std::make_pair("Recieved Data", 0.0)
                                 };
     //Connected network (only caring to display one network for now)
     std::string connectedNetwork;

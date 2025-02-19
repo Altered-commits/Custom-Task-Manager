@@ -234,6 +234,16 @@ void CTMPerformanceDISKScreen::OnUpdate()
 
     auto&&[readUsageInKB, writeUsageInKB] = GetDriveUsageAtIdx(currentViewingDriveIndex);
 
+    //Assign the metricsVector the above values with encoding only when statistics header is collapsed (user is actively watching the data)
+    if(isStatisticsHeaderExpanded)
+    {
+        metricsVector[static_cast<std::size_t>(MetricsVectorIndex::ReadUsage)].second 
+            = CTMPerformanceCommon::EncodeDoubleWithUnits(readUsageInKB);
+        metricsVector[static_cast<std::size_t>(MetricsVectorIndex::WriteUsage)].second
+            = CTMPerformanceCommon::EncodeDoubleWithUnits(writeUsageInKB);
+    }
+
+    //Plot the values as well
     PlotYAxisAtIndex(static_cast<std::size_t>(CTMPlotTypeIndex::DiskRead), readUsageInKB);
     PlotYAxisAtIndex(static_cast<std::size_t>(CTMPlotTypeIndex::DiskWrite), writeUsageInKB);
 
@@ -253,7 +263,32 @@ void CTMPerformanceDISKScreen::RenderViewForDiskDrive()
         ImGui::TableSetupColumn("Values");
         ImGui::TableHeadersRow();
 
-        //Basic Disk Info
+        //Dynamically changing Disk Info From 'metricsVector'
+        for(std::size_t i = 0; i < metricsVector.size(); i++)
+        {
+            auto&&[metric, value] = metricsVector[i];
+
+            ImGui::TableNextRow();
+            //Metrics column
+            ImGui::TableSetColumnIndex(0);
+            ImGui::TextUnformatted(metric);
+            //Value column
+            ImGui::TableSetColumnIndex(1);
+            std::visit([this](auto&& arg)
+            {
+                using T = std::decay_t<decltype(arg)>;
+            
+                //Disk usage, 3 LSB will represent its type (KB, MB...) and rest represent the actual value
+                if constexpr(std::is_same_v<T, float>)
+                {
+                    float decodedDiskData = 0.0f; std::uint8_t decodedType = 0;
+                    CTMPerformanceCommon::DecodeDoubleWithUnits(arg, decodedType, decodedDiskData);
+                    ImGui::Text("%.2f %s", decodedDiskData, CTMPerformanceCommon::GetDataUnitAtIdx(decodedType));
+                }
+            }, value);
+        }
+
+        //Static Disk Info
         auto& diskDriveInfo = diskDriveVector[currentViewingDriveIndex];
         RenderDiskDriveTableEntries(diskDriveInfo);
 

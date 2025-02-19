@@ -392,7 +392,6 @@ void CTMPerformanceNETScreen::RenderNetworkStatistics()
                     CTMPerformanceCommon::DecodeDoubleWithUnits(arg, decodedType, decodedNetworkData);
                     ImGui::Text("%.2f %s", decodedNetworkData, CTMPerformanceCommon::GetDataUnitAtIdx(decodedType));
                 }
-
             }, value);
         }
         

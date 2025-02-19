@@ -65,11 +65,19 @@ private: //Misc enums
     //Graph colors :)
     static constexpr ImVec4 graphColors[2] = { {0.2f, 0.8f, 0.4f, 1.0f}, {0.1f, 0.6f, 0.3f, 1.0f} };
 
-private: //Disk variables
+private: //Disk variables (and stuff to display)
     std::vector<DiskDriveInfo> diskDriveVector; //Equivalent to metricsVector
     //Used for displaying button / metrics text basically
     char         diskDriveLabel[9]        = " : Drive";
     std::uint8_t currentViewingDriveIndex = 0;
+    
+    //For displaying the current disk usage cuz i forgot about it :D
+    enum class MetricsVectorIndex : std::uint8_t { ReadUsage, WriteUsage };
+
+    MetricsVector metricsVector = {
+                                    std::make_pair("Drive Read Usage",  0.0),
+                                    std::make_pair("Drive Write Usage", 0.0)
+                                };
 };
 
 #endif
