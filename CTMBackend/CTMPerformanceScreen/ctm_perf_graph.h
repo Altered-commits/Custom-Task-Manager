@@ -37,6 +37,7 @@ struct CTMScrollingBuffer
 //Making sections of code is always good no matter how explicit you gotta be
 public:
     //Have a value initially, or u would be accessing value out of bounds, INITIALLY ofc
+    //Also this is the only place where you will find variables with Pascal case and not Camel case
     PlotBufferVector<CTMPoint<T>> Data = { {0, 0} };
     std::size_t                   MaxSize;
     std::size_t                   Offset;
@@ -60,6 +61,14 @@ public:
         }
     }
 
+    void ResetBuffer()
+    {
+        Data.clear();
+        Offset = 0;
+        //An initial value is always needed so it doesn't throw an access out of bounds error
+        Data.emplace_back(0, 0);
+    }
+
     T GetMaxYValue()
     {
         return std::max_element(Data.begin(), Data.end(),
@@ -69,7 +78,8 @@ public:
 
 //Its simply a class to be inherited by 'screen' classes (aka (pages/screens) like Cpu Usage, etc)
 //It contains function and variables to plot graph which is common to all screens
-//Templating it as it maybe used for plotting multiple plots on a single graph. Template param PlotType added to switch between float and double
+//No error handling in most cases as i am assuming i'm not dumb ( which i am ) enough to access arrays out of bounds
+//Templating it as it maybe used for plotting multiple lines on a single graph. Template param PlotType added to switch between float and double
 template<std::size_t NumOfPlots, typename PlotType>
 class CTMPerformanceUsageGraph
 {
@@ -79,54 +89,10 @@ class CTMPerformanceUsageGraph
     static_assert(std::is_floating_point_v<PlotType>, "'CTMPerformanceUsageGraph' requires 'PlotType' to be floating point.");
 
 protected: //Used in render function
-    //Letting minPlotLimit and maxPlotLimit be double as PlotType is of no use here
-    void PlotUsageGraph(const char* plotLabel, const ImVec2& plotSize, double minPlotLimit, double maxPlotLimit, const ImVec4& plotColor)
-    {
-        if(ImPlot::BeginPlot(plotLabel, plotSize, ImPlotFlags_NoInputs))
-        {
-            ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoTickLabels, ImPlotAxisFlags_NoTickLabels);
-
-            ImPlot::SetupAxisLimits(ImAxis_X1, xAxisValue - graphDuration, xAxisValue, ImPlotCond_Always);
-            ImPlot::SetupAxisLimits(ImAxis_Y1, minPlotLimit, maxPlotLimit, ImPlotCond_Always);
-
-            ImPlot::SetNextFillStyle(plotColor, 0.5f);
-            ImPlot::SetNextLineStyle(plotColor, 0.5f);
-
-            ImPlot::PlotShaded("", &plotBuffers[0].Data[0].x, &plotBuffers[0].Data[0].y, plotBuffers[0].Data.size(),
-                                0, 0, plotBuffers[0].Offset, 2 * sizeof(PlotType));
-            ImPlot::PlotLine("", &plotBuffers[0].Data[0].x, &plotBuffers[0].Data[0].y, plotBuffers[0].Data.size(),
-                                0, plotBuffers[0].Offset, 2 * sizeof(PlotType));  
-            
-            ImPlot::EndPlot();
-        }
-    }
-    void PlotMultiUsageGraph(const char* plotLabel, const char* plotShadedLabel, const char* plotLineLabel,
-                            double minPlotLimit, double maxPlotLimit, const ImVec2& plotSize, const ImVec4 plotColors[NumOfPlots])
-    {   
-        if(ImPlot::BeginPlot(plotLabel, plotSize, ImPlotFlags_NoInputs))
-        {
-            ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoTickLabels, ImPlotAxisFlags_NoTickLabels);
-
-            ImPlot::SetupAxisLimits(ImAxis_X1, xAxisValue - graphDuration, xAxisValue, ImPlotCond_Always);
-            ImPlot::SetupAxisLimits(ImAxis_Y1, minPlotLimit, maxPlotLimit, ImPlotCond_Always);
-
-            //Rn at max there will be two plots only, so make one line and one shaded
-            //1) 0th index is shaded
-            ImPlot::SetNextFillStyle(plotColors[0], 0.5f);
-            ImPlot::SetNextLineStyle(plotColors[0], 0.5f);
-            ImPlot::PlotShaded(plotShadedLabel, &plotBuffers[0].Data[0].x, &plotBuffers[0].Data[0].y, plotBuffers[0].Data.size(),
-                                0, 0, plotBuffers[0].Offset, 2 * sizeof(PlotType));
-            ImPlot::PlotLine(plotShadedLabel, &plotBuffers[0].Data[0].x, &plotBuffers[0].Data[0].y, plotBuffers[0].Data.size(),
-                                0, plotBuffers[0].Offset, 2 * sizeof(PlotType));
-
-            //2) 1st index is line
-            ImPlot::SetNextLineStyle(plotColors[1], 0.5f);
-            ImPlot::PlotLine(plotLineLabel, &plotBuffers[1].Data[0].x, &plotBuffers[1].Data[0].y, plotBuffers[1].Data.size(),
-                                0, plotBuffers[1].Offset, 2 * sizeof(PlotType));
-            
-            ImPlot::EndPlot();
-        }
-    }
+    //For plotting single line in single graph
+    void PlotUsageGraph(const char*, double, double, const ImVec2&, const ImVec4&);
+    //For plotting multiple lines in single graph
+    void PlotMultiUsageGraph(const char*, const char*, const char*, double, double, const ImVec2&, const ImVec4[NumOfPlots]);
 
 protected: //Used in update function
     //Plotting for both multiple and single plots
@@ -140,7 +106,7 @@ protected: //Used in update function
     {
         //This is for the case when we start supporting multiple buffers
         PlotType temp = 0;
-        for (std::size_t i = 0; i < NumOfPlots; i++)
+        for(std::size_t i = 0; i < NumOfPlots; i++)
             temp = std::max(temp, plotBuffers[i].GetMaxYValue());
         
         yAxisMaxValue = temp;
@@ -148,15 +114,16 @@ protected: //Used in update function
 
 protected: //Common function
     double GetYAxisMaxValue() { return yAxisMaxValue; }
+    void   ResetGraph()
+    {
+        for(std::size_t i = 0; i < NumOfPlots; i++)
+            plotBuffers[i].ResetBuffer();
+        xAxisValue    = 0;
+        yAxisMaxValue = 0;
+    }
 
 private: //Helper functions
-    void PlotPointAtIndex(std::size_t index, PlotType y)
-    {
-        if(index >= NumOfPlots)
-            CTM_LOG_ERROR("Trying to plot beyond the bounds of plots. Total plots: ", NumOfPlots, ", your plot index: ", index);
-        else
-            plotBuffers[index].AddPoint(xAxisValue, y);
-    }
+    void PlotPointAtIndex(std::size_t index, PlotType y) { plotBuffers[index].AddPoint(xAxisValue, y); }
 
 private: //I don't want these variables to accidentally get modified in any way other than the method specified by functions
     //These are hardcoded as all the screens will be having same duration of graph and buffer size

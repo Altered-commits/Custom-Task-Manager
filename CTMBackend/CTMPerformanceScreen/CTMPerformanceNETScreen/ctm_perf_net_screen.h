@@ -29,14 +29,6 @@
 //'using' makes my life what?
 using AdapterIPAddressVector = std::vector<std::array<char, INET6_ADDRSTRLEN + 1>>; // +1 to store the type of address at the beginning
 
-//Union for float manipulation. Used for graph value representation (10.24KB, 1.42MB and so on)
-//There is no point in using 'double' as the value isn't going to be that big
-union CTMFloatView
-{
-    float         floatView;
-    std::uint32_t bitView;  //32bit representation of float (1(sign) 11111111(exponent) 11111111111111111111111(mantissa))
-};
-
 //Stores the network adapter information
 struct NetworkAdapterInfo
 {
@@ -76,8 +68,6 @@ private: //Update functions
 
 private: //Helper functions
     double GetPdhFormattedNetworkData(PDH_HCOUNTER);
-    float  EncodeNetworkDataWithType(double);
-    void   DecodeNetworkDataWithType(float, std::uint8_t&, float&);
 
 private: //Global managers
     CTMCriticalResourceGuard& resourceGuard  = CTMCriticalResourceGuard::GetInstance();
@@ -110,11 +100,6 @@ private: //Misc
     enum class CTMNetworkAddressType { NetworkUnknown, NetworkIPv4, NetworkIPv6 };
     //Colors for graphs
     constexpr static ImVec4 graphColors[2] = { {0.8f, 0.4f, 0.1f, 0.5f}, {0.9f, 0.6f, 0.3f, 1.0f} };
-
-private: //Dynamically decide network values unit
-    //With 64 bit unsigned int, max u can go is 16 Exabyte. Hence the 'EB'
-    constexpr static const char*  dataUnits[]   = { "KB", "MB", "GB", "TB", "PB", "EB" };
-    constexpr static std::uint8_t dataUnitsSize = sizeof(dataUnits) / sizeof(dataUnits[0]);
 
 private: //The stuff to actually display
     enum class MetricsVectorIndex : std::uint8_t { SentData, RecievedData };

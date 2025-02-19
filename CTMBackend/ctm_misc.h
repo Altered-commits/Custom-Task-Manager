@@ -16,7 +16,7 @@
 //Moved this define from 'ctm_constants.h'
 //Mutex constant (Not the most secure way to do it but for now lets do it like this).
 //Also added a uuid at the end to sort of make it unique????? i have no idea how these work. (Generated using python uuid)
-#define CTM_APP_MUTEX_NAME L"Global\\CTMImGui_App_Single_Instance_Mutex_88bac14c-67fe-44e9-a29a-071b22a95104"
+#define CTM_APP_MUTEX_NAME L"Global\\CTM_ImGui_App_Single_Instance_Mutex_88bac14c-67fe-44e9-a29a-071b22a95104"
 
 //CTMMutexGuard needed to clean up the mutex automatically
 class CTMMutexGuard

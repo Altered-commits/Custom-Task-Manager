@@ -291,7 +291,7 @@ void CTMPerformanceCPUScreen::OnRender()
     ImVec2 windowSize = ImGui::GetWindowSize();
     //Plot the CPU Usage Graph, also specify the max and min range of the graph cuz why not
     ImGui::TextUnformatted("100%");
-    PlotUsageGraph("Overall CPU Usage (over 60 Seconds)", {-1.0f, 300.0f}, 0.0, 100.0, { 0.075f, 0.792f, 0.988f, 1.0f });
+    PlotUsageGraph("Overall CPU Usage (over 60 Seconds)", 0.0, 100.0, {-1.0f, 300.0f}, { 0.075f, 0.792f, 0.988f, 1.0f });
     ImGui::TextUnformatted("0%");
 
     //Give some spacing vertically before displaying CPU Info

@@ -54,7 +54,7 @@ private: //Settings variables
     int                  currentPerfIndex = static_cast<int>(CTMPerformanceScreenState::CpuInfo);
     //
     const char*          mainPages[mainPageCount] = { "Processes", "Performance", "Apps", "Services", "Settings" };
-    const char*          perfPages[perfPageCount] = { "CPU", "Memory", "Network" };
+    const char*          perfPages[perfPageCount] = { "CPU", "Memory", "Network", "Disk" };
 
 private: //Common variables
     const float comboBoxWidth     = 230.0f;

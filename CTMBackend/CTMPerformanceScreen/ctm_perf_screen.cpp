@@ -56,6 +56,10 @@ void CTMPerformanceScreen::SwitchScreen(CTMPerformanceScreenState newState)
         case CTMPerformanceScreenState::NetInfo:
             currentScreen = std::make_unique<CTMPerformanceNETScreen>();
             break;
+        
+        case CTMPerformanceScreenState::DiskInfo:
+            currentScreen = std::make_unique<CTMPerformanceDISKScreen>();
+            break;
 
         default:
             currentScreen = nullptr;
@@ -131,11 +135,14 @@ void CTMPerformanceScreen::RenderSidebar(const ImVec2& contentRegion)
         ImVec2 sidebarButtonSize{CREGION_PERFSCR_SIDEBAR_WIDTH, CREGION_PERFSCR_SIDEBAR_WIDTH};
         
         RenderSidebarButton("CPU", "CPU Info", sidebarButtonSize,
-                        {0.2f, 0.5f, 0.8f, 1.0f}, {0.1f, 0.3f, 0.6f, 1.0f}, CTMPerformanceScreenState::CpuInfo);
+                    {0.8f, 0.2f, 0.2f, 1.0f}, {0.6f, 0.1f, 0.1f, 1.0f}, CTMPerformanceScreenState::CpuInfo);
         RenderSidebarButton("MEM", "Memory Info", sidebarButtonSize,
-                        {0.3f, 0.7f, 0.3f, 1.0f}, {0.2f, 0.5f, 0.2f, 1.0f}, CTMPerformanceScreenState::MemoryInfo);
+                            {0.2f, 0.8f, 0.2f, 1.0f}, {0.1f, 0.6f, 0.1f, 1.0f}, CTMPerformanceScreenState::MemoryInfo);
         RenderSidebarButton("NET", "Network Info", sidebarButtonSize,
-                        {0.0f, 0.5f, 0.9f, 1.0f}, {0.0f, 0.3f, 0.7f, 1.0f}, CTMPerformanceScreenState::NetInfo);
+                            {0.2f, 0.2f, 0.8f, 1.0f}, {0.1f, 0.1f, 0.6f, 1.0f}, CTMPerformanceScreenState::NetInfo);
+        RenderSidebarButton("DISK", "Disk Info", sidebarButtonSize,
+                            {0.8f, 0.6f, 0.2f, 1.0f}, {0.6f, 0.4f, 0.1f, 1.0f}, CTMPerformanceScreenState::DiskInfo);
+
     }
     ImGui::EndChild();
 }

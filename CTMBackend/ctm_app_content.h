@@ -10,11 +10,11 @@
 #include <functional>
 #include <memory>
 //My stuff
-#include "ctm_constants.h"
 #include "CTMGlobalManagers/ctm_state_manager.h"
 #include "CTMPerformanceScreen/ctm_perf_screen.h"
 #include "CTMProcessScreen/ctm_process_screen.h"
 #include "CTMSettingsScreen/ctm_settings_screen.h"
+#include "ctm_constants.h"
 
 class CTMAppContent
 {

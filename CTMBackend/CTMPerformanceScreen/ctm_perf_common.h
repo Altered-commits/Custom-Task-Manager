@@ -6,6 +6,7 @@
 //Stdlib stuff
 #include <memory>
 #include <cstring>
+#include <cstdint>
 #include <variant>
 #include <vector>
 
@@ -45,11 +46,31 @@ using MetricsVector = std::vector<std::pair<const char*, MetricsValue>>;
 #define CTM_WMI_ELSE_CONDITION()       } else {
 #define CTM_WMI_END_CONDITION()        }
 
+//Union for float manipulation. Used for graph value representation (10.24KB, 1.42MB and so on)
+//There is no point in using 'double' as the value isn't going to be that big
+union CTMFloatView
+{
+    float         floatView;
+    std::uint32_t bitView;  //32bit representation of float (1(sign) 11111111(exponent) 11111111111111111111111(mantissa))
+};
+
 //Some common functions enclosed in class (almost like a namespace except i'm not using namespace because i'm an idiot)
 class CTMPerformanceCommon
 {
-public:
-    static bool WSToSWithEllipsisTruncation(PSTR, PWSTR, int, std::size_t = 0);
+public: //Wide String to String conversion
+    static bool  WSToSWithEllipsisTruncation(PSTR, PWSTR, int, std::size_t = 0);
+
+public: //Encoding and Decoding floating point values
+    static float EncodeDoubleWithUnits(double);
+    static void  DecodeDoubleWithUnits(float, std::uint8_t&, float&);
+
+public: //Get data unit at a certain index
+    static constexpr const char* GetDataUnitAtIdx(std::uint8_t idx) { return dataUnits[idx]; }
+
+private: //Dynamically decide unit for a given value, used to encode and decode floating point values
+    //With 64 bit unsigned int, max u can go is 16 Exabyte. Hence the 'EB'
+    constexpr static const char*  dataUnits[]   = { "KB", "MB", "GB", "TB", "PB", "EB" };
+    constexpr static std::uint8_t dataUnitsSize = sizeof(dataUnits) / sizeof(dataUnits[0]);
 };
 
 #endif

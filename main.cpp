@@ -9,11 +9,11 @@
  * But the reason why i'm still using 'OpenProcess' is to avoid using 'reserved' values as much as possible.
  * Rest idk if i'm doing stuff right, i am still new to winapi and windows app programming stuff.
  * 
- * 2) Dated: 19-01-2025
- * Without including <WinSock2.h> everywhere, it was giving me error on MSVC but somehow it worked on MinGW. Idk
- * 
- * 3) Dated: 17-01-2025
+ * 2) Dated: 17-01-2025
  * Also forgive me for writing really bad code, honestly i'm running low on time and i have like other works as well ):
+ * 
+ * 3) Dated: 19-01-2025
+ * Without including <WinSock2.h> everywhere, it was giving me error on MSVC but somehow it worked on MinGW. Idk
  * 
  * 4) Dated: 04-01-2025
  * PS: I tried my absolute best to make sure this works in MSVC and MinGW.

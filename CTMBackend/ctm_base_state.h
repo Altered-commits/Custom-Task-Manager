@@ -20,6 +20,7 @@ enum class CTMPerformanceScreenState : std::uint8_t
     CpuInfo,
     MemoryInfo,
     NetInfo,
+    DiskInfo,
     PageCount,
     None
 };

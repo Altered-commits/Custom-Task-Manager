@@ -32,10 +32,10 @@ void CTMPerformanceNETScreen::OnRender()
 {
     //Decode the max y limit into value and type
     float decodedMaxLimit = 0.0f; std::uint8_t decodedType = 0;
-    DecodeNetworkDataWithType(displayMaxYLimit, decodedType, decodedMaxLimit);
+    CTMPerformanceCommon::DecodeDoubleWithUnits(displayMaxYLimit, decodedType, decodedMaxLimit);
 
     //1) Graph
-    ImGui::Text("%.2f %s", decodedMaxLimit, dataUnits[decodedType]);
+    ImGui::Text("%.2f %s", decodedMaxLimit, CTMPerformanceCommon::GetDataUnitAtIdx(decodedType));
     PlotMultiUsageGraph("Network Usage (Over 60 sec)", "Sent Bytes", "Recieved Bytes", 0, GetYAxisMaxValue(), {-1, 300}, graphColors);
     ImGui::TextUnformatted("0 KB");
 
@@ -66,7 +66,7 @@ void CTMPerformanceNETScreen::OnUpdate()
     UpdateYAxisToMaxValue();
 
     //Get the max y-axis limit and just convert it to some good readable unit
-    displayMaxYLimit = EncodeNetworkDataWithType(GetYAxisMaxValue());
+    displayMaxYLimit = CTMPerformanceCommon::EncodeDoubleWithUnits(GetYAxisMaxValue());
 }
 
 //--------------------CONSTRUCTOR AND DESTRUCTOR FUNCTIONS--------------------
@@ -389,9 +389,8 @@ void CTMPerformanceNETScreen::RenderNetworkStatistics()
                 if constexpr(std::is_same_v<T, float>)
                 {
                     float decodedNetworkData = 0.0f; std::uint8_t decodedType = 0;
-
-                    DecodeNetworkDataWithType(arg, decodedType, decodedNetworkData);
-                    ImGui::Text("%.2f %s", decodedNetworkData, dataUnits[decodedType]);
+                    CTMPerformanceCommon::DecodeDoubleWithUnits(arg, decodedType, decodedNetworkData);
+                    ImGui::Text("%.2f %s", decodedNetworkData, CTMPerformanceCommon::GetDataUnitAtIdx(decodedType));
                 }
 
             }, value);
@@ -497,11 +496,13 @@ void CTMPerformanceNETScreen::UpdateNetworkUsage()
 
     //1) Recieved Bytes (Dynamically converted to some unit like KB, MB... and so on)
     totalRecBytesKB = GetPdhFormattedNetworkData(hNetworkRecieved);
-    metricsVector[static_cast<std::size_t>(MetricsVectorIndex::RecievedData)].second = EncodeNetworkDataWithType(totalRecBytesKB);
+    metricsVector[static_cast<std::size_t>(MetricsVectorIndex::RecievedData)].second
+            = CTMPerformanceCommon::EncodeDoubleWithUnits(totalRecBytesKB);
 
     //2) Sent Bytes (Dynamically converted to some unit like KB, MB... and so on)
     totalSentBytesKB = GetPdhFormattedNetworkData(hNetworkSent);
-    metricsVector[static_cast<std::size_t>(MetricsVectorIndex::SentData)].second = EncodeNetworkDataWithType(totalSentBytesKB);
+    metricsVector[static_cast<std::size_t>(MetricsVectorIndex::SentData)].second
+            = CTMPerformanceCommon::EncodeDoubleWithUnits(totalSentBytesKB);
     
     //Uhh yeah, what else am i supposed to do. We are done
 }
@@ -537,48 +538,4 @@ double CTMPerformanceNETScreen::GetPdhFormattedNetworkData(PDH_HCOUNTER hNetwork
         retTotalBytes += networkDataArray[i].FmtValue.largeValue;
     
     return (retTotalBytes / 1024.0);
-}
-
-float CTMPerformanceNETScreen::EncodeNetworkDataWithType(double inData)
-{
-    /*
-     * The converted value will range somewhere from 0 to 1023 until it gets converted again to higher type.
-     * So it won't take that many bits in practice
-     */
-    //Base case
-    if(inData <= 0)
-        return 0;
-
-    //End deduced data type
-    std::uint8_t calcUnitIndex = 0;
-
-    //Scale down the size using simple division. This outperforms log + pow implementation, atleast on my system
-    while(inData >= 1024.0 && calcUnitIndex < dataUnitsSize - 1)
-    {
-        inData /= 1024.0;
-        ++calcUnitIndex;
-    }
-
-    //Now that the value has been converted, the value can be casted to float without much data loss
-    CTMFloatView fv;
-    fv.floatView = static_cast<float>(inData);
-
-    //Set the 3 bits in mantissa (furthest from exponent) to contain its data type (KB, MB... and so on)
-    fv.bitView = (fv.bitView & ~0x7) | calcUnitIndex;
-
-    return fv.floatView;
-}
-
-void CTMPerformanceNETScreen::DecodeNetworkDataWithType(float inData, std::uint8_t& outType, float& outData)
-{
-    //Create a float view of data
-    CTMFloatView fv;
-    fv.floatView = inData;
-    
-    //Extract the 3 least significant bits of mantissa
-    outType = (fv.bitView & 0x7);
-
-    //Clear the last three bits and retrive the data
-    fv.bitView &= ~0x7;
-    outData = fv.floatView;
 }

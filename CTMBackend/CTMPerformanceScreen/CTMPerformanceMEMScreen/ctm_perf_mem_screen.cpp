@@ -320,7 +320,7 @@ void CTMPerformanceMEMScreen::OnRender()
 
     //Plotting memory usage, this result is pretty much the same as that of Task Manager
     ImGui::Text("%.2lfGB", totalOSUsableMemoryInGB);
-    PlotUsageGraph("Memory in use (Over 60 Seconds)", {-1.0f, 300.0f}, 0.0, totalOSUsableMemoryInGB, { 0.588f, 0.463f, 0.929f, 1.0f });
+    PlotUsageGraph("Memory in use (Over 60 Seconds)", 0.0, totalOSUsableMemoryInGB, {-1.0f, 300.0f}, { 0.588f, 0.463f, 0.929f, 1.0f });
     ImGui::TextUnformatted("0GB");
 
     //Give some spacing vertically before displaying Memory Info

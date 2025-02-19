@@ -12,9 +12,9 @@
 #include "../ImGUIBackend/imgui_impl_win32.h"
 #include "../ImGUIBackend/imgui_impl_dx11.h"
 //My stuff
+#include "CTMGlobalManagers/ctm_state_manager.h"
 #include "ctm_constants.h"
 #include "ctm_app_content.h"
-#include "CTMGlobalManagers/ctm_state_manager.h"
 #include "ctm_misc.h"
 
 //Forward declare as told by imgui_impl_win32.cpp
