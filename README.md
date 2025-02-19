@@ -5,6 +5,7 @@
 # !!! Important !!!
 - I compiled this application on MSVC and MinGW and it worked fine for me. I cannot guarantee that this will compile on other compilers properly but give it a shot.
 - If you are trying to run this app and you have an Antivirus which checks the app before running it, chances are, this may bug out a little bit before it runs fine. Atleast it bugged out on my Avast Antivirus.
+- Alot of inconsistent code as i'm rushing to complete this project now (sry i have other works as well rn). So if you feel like this code is bad (which it is), please contribute and fix the code... thank you in advance if you do fix the code :)
 
 ## Features
 - **Single Instance App**: Only one instance of application is allowed at a time throughout system. If you try to open a new instance while the main instance is hung, then the main instance will be terminated and a new instance will be opened.
