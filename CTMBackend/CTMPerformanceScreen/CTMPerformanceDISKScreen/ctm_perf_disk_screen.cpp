@@ -130,7 +130,7 @@ bool CTMPerformanceDISKScreen::CTMConstructorInitPDH()
     //Loop over all the drives present
     for(auto &&i : diskDriveVector)
     {
-        //Override the query '~' with our string
+        //Override the query '~' with our drive letter
         pdhReadQuery[tildePos]  = i.letterAssigned;
         pdhWriteQuery[tildePos] = i.letterAssigned;
 
@@ -173,6 +173,9 @@ bool CTMPerformanceDISKScreen::CTMConstructorInitPDH()
 
 void CTMPerformanceDISKScreen::CTMDestructorCleanupPDH()
 {
+    //Oh btw i sort of never check if i cleaned up hQuery beforehand
+    //Cuz it sort of like... works even tho its like not a good practice but yeaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    //Pls fix my code
     PdhCloseQuery(hQuery);
     resourceGuard.UnregisterCleanupFunction(pdhCleanupFunctionName);
 }

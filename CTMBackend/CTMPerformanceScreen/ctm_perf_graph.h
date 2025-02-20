@@ -5,7 +5,7 @@
 #undef max
 
 //My stuff
-#include "../ctm_logger.h"
+#include "../CTMPureHeaderFiles/ctm_logger.h"
 //ImGui and Implot stuff
 #include "../../ImGUI/imgui.h"
 #include "../../ImPlot/implot.h"

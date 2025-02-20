@@ -18,7 +18,7 @@
 #include <sstream>
 #include <charconv>
 //My stuff
-#include "../ctm_constants.h"
+#include "../CTMPureHeaderFiles/ctm_constants.h"
 
 //So i don't make errors in getting values
 enum class CTMSettingKey : std::uint8_t

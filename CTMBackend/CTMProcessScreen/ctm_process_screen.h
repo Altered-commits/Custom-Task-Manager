@@ -10,8 +10,8 @@
 #include "../../ImGUI/imgui.h"
 //My stuff
 #include "ctm_process_screen_etw.h"
-#include "../ctm_base_state.h"
-#include "../ctm_logger.h"
+#include "../CTMPureHeaderFiles/ctm_base_state.h"
+#include "../CTMPureHeaderFiles/ctm_logger.h"
 #include "../CTMGlobalManagers/ctm_critical_resource_guard.h"
 //Stdlib stuff
 #include <vector>

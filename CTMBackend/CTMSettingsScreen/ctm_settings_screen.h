@@ -7,7 +7,7 @@
 #include "../../ImGUI/imgui.h"
 #include "../../ImPlot/implot.h"
 //My stuff
-#include "../ctm_base_state.h"
+#include "../CTMPureHeaderFiles/ctm_base_state.h"
 #include "../CTMGlobalManagers/ctm_state_manager.h"
 //Stdlib stuff
 #include <functional>

@@ -12,8 +12,8 @@
 #include "CTMPerformanceMEMScreen/ctm_perf_mem_screen.h"
 #include "CTMPerformanceNETScreen/ctm_perf_net_screen.h"
 #include "CTMPerformanceDISKScreen/ctm_perf_disk_screen.h"
-#include "../ctm_base_state.h"
-#include "../ctm_constants.h"
+#include "../CTMPureHeaderFiles/ctm_base_state.h"
+#include "../CTMPureHeaderFiles/ctm_constants.h"
 #include "../CTMGlobalManagers/ctm_state_manager.h"
 //Stdlib stuff
 #include <memory>

@@ -4,7 +4,7 @@
 //Windows stuff
 #include <Windows.h>
 //My stuff
-#include "../ctm_logger.h"
+#include "../CTMPureHeaderFiles/ctm_logger.h"
 //Stdlib stuff
 #include <unordered_map>
 #include <functional>

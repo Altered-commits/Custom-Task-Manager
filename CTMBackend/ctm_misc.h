@@ -11,7 +11,7 @@
 //Windows stuff
 #include <windows.h>
 //My stuff
-#include "ctm_logger.h"
+#include "CTMPureHeaderFiles/ctm_logger.h"
 
 //Moved this define from 'ctm_constants.h'
 //Mutex constant (Not the most secure way to do it but for now lets do it like this).

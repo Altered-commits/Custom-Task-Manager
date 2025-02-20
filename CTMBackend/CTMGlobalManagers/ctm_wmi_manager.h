@@ -9,7 +9,7 @@
 #include <wrl/client.h>
 //My stuff
 #include "ctm_critical_resource_guard.h"
-#include "../ctm_logger.h"
+#include "../CTMPureHeaderFiles/ctm_logger.h"
 //Stdlib stuff
 #include <cstring>
 

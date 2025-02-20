@@ -15,9 +15,9 @@
 //My stuff
 #include "../ctm_perf_common.h"
 #include "../ctm_perf_graph.h"
-#include "../../ctm_constants.h"
-#include "../../ctm_base_state.h"
-#include "../../ctm_logger.h"
+#include "../../CTMPureHeaderFiles/ctm_constants.h"
+#include "../../CTMPureHeaderFiles/ctm_base_state.h"
+#include "../../CTMPureHeaderFiles/ctm_logger.h"
 #include "../../CTMGlobalManagers/ctm_critical_resource_guard.h"
 #include "../../CTMGlobalManagers/ctm_winsock_manager.h"
 //Stdlib stuff
