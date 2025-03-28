@@ -58,6 +58,9 @@ private:
 //Using this as a namespace lmao
 class CTMMisc
 {
+public: //Wide String to String conversion
+    static bool  WSToSWithEllipsisTruncation(PSTR, PWSTR, int, std::size_t = 0);
+
 public: //Admin stuff
     //Enable cool privilages to app because why not, ofc there is nothing wrong with giving app one of the highest privilage amirite
     static bool EnableOrDisablePrivilege(LPCWSTR, bool = true);

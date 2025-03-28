@@ -135,7 +135,7 @@ void CTMProcessScreen::CTMDestructorCleanMappedHandles()
 //--------------------MAIN RENDER AND UPDATE FUNCTIONS--------------------
 void CTMProcessScreen::OnRender()
 {
-    if (ImGui::BeginTable("ProcessesTable", 6, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersInnerV |
+    if(ImGui::BeginTable("ProcessesTable", 6, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersInnerV |
                                                ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollX))
     {
         ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed);
@@ -148,7 +148,7 @@ void CTMProcessScreen::OnRender()
         ImGui::TableHeadersRow();
 
         //Render rest of the processes as is
-        for (auto&& groupedProcess : groupedProcessesMap)
+        for(auto&& groupedProcess : groupedProcessesMap)
         {
             auto& appName      = groupedProcess.first;
             auto& appProcesses = groupedProcess.second;
@@ -182,9 +182,9 @@ void CTMProcessScreen::OnRender()
 
                 //How to check if a process can be terminated? Simply check if the pid doesn't exist in exclusion set.
                 //If it exists, then we can't terminate it
-                for (auto&& i : appProcesses)
+                for(auto&& i : appProcesses)
                 {
-                    if (processExcludedHandleSet.find(i.processId) != processExcludedHandleSet.end())
+                    if(processExcludedHandleSet.find(i.processId) != processExcludedHandleSet.end())
                     {
                         canTerminate = false;
                         break;

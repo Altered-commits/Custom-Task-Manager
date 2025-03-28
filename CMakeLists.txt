@@ -24,4 +24,4 @@ add_executable(CTMApp main.cpp ${IMGUI_SOURCES} ${IMGUI_BACKEND_SOURCES} ${IMPLO
 target_include_directories(CTMApp PRIVATE ImGUI)
 
 # Link required libraries
-target_link_libraries(CTMApp PRIVATE dxgi d3d11 gdi32 d3dcompiler dwmapi Pdh tdh wbemuuid wlanapi Iphlpapi Ws2_32)
+target_link_libraries(CTMApp PRIVATE dxgi d3d11 gdi32 d3dcompiler dwmapi Pdh tdh wbemuuid wlanapi Iphlpapi Ws2_32 shell32)

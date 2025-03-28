@@ -3,6 +3,8 @@
 
 //Windows stuff
 #include <windows.h>
+//My stuff
+#include "../ctm_misc.h"
 //Stdlib stuff
 #include <memory>
 #include <cstring>
