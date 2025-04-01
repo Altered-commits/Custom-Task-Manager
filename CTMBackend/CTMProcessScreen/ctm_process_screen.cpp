@@ -83,7 +83,7 @@ bool CTMProcessScreen::CTMConstructorInitEventTracingThread()
 
     processUsageEventTracingThread = std::thread([this, &initSuccess](){
         //Now call ProcessEvents which should block this thread until it is stopped (if it did not fail that is)
-        if (!processUsageEventTracing.ProcessEvents())
+        if(!processUsageEventTracing.ProcessEvents())
             initSuccess.store(false);
     });
 
@@ -386,14 +386,14 @@ void CTMProcessScreen::UpdateProcessInfo()
         while(systemProcessInfo)
         {
             auto& imageName = systemProcessInfo->ImageName;
-            if (imageName.Length > 0 && imageName.Buffer != nullptr)
+            if(imageName.Length > 0 && imageName.Buffer != nullptr)
             {
                 //Ensure we don't exceed the buffer size
                 int bytesWritten = WideCharToMultiByte(CP_UTF8, 0, imageName.Buffer, imageName.Length / sizeof(WCHAR),
                                                     processName, sizeof(processName) - 1, NULL, NULL);
 
                 //Null-terminate the string in case WideCharToMultiByte doesn't do it
-                if (bytesWritten > 0)
+                if(bytesWritten > 0)
                     processName[bytesWritten] = '\0';
             }
             
@@ -402,7 +402,7 @@ void CTMProcessScreen::UpdateProcessInfo()
             HANDLE hProcess  = GetProcessHandleFromId(processId);
 
             //We will use some hacky hacks to get usage data as we can't open the process for its data
-            if (hProcess == nullptr)
+            if(hProcess == nullptr)
                 UpdateProcessMapWithoutProcessHandle(processId, processName, 
                     reinterpret_cast<PCTM_SYSTEM_PROCESS_INFORMATION>(systemProcessInfo), ftSysKernelTime, ftSysUserTime);
             //We will be closing process handles through destructor and/or while cleaning stale entries
@@ -539,18 +539,18 @@ void CTMProcessScreen::UpdateProcessMap(DWORD processId, const std::string& proc
 HANDLE CTMProcessScreen::GetProcessHandleFromId(DWORD processId)
 {
     //Early return if process is found in the excluded set
-    if (processExcludedHandleSet.find(processId) != processExcludedHandleSet.end())
+    if(processExcludedHandleSet.find(processId) != processExcludedHandleSet.end())
         return nullptr;
 
     auto it = processIdToHandleMap.find(processId);
     //The handle exists in the map, return it
-    if (it != processIdToHandleMap.end())
+    if(it != processIdToHandleMap.end())
         return it->second;
     
     //The handle doesn't exist in the map, try to 'OpenProcess' and get the process handle
     HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | PROCESS_TERMINATE, FALSE, processId);
     //Successfully opened the process, store the handle in the map and return it
-    if (hProcess)
+    if(hProcess)
         processIdToHandleMap[processId] = hProcess;
     //Failed to open process, add the processId to the exclusion set
     else
@@ -584,7 +584,7 @@ void CTMProcessScreen::TerminateGroupProcess()
     if(it != groupedProcessesMap.end()) //Exists, loop through all the processes and terminate them
     {
         CTM_LOG_INFO("Terminating process group -> ", processGroupKey);
-        for (auto &&i : it->second)
+        for(auto &&i : it->second)
             TerminateChildProcess(i.processId);
     }
     else //Doesn't exist, may have been terminated beforehand
@@ -662,13 +662,13 @@ double CTMProcessScreen::CalculateMemoryUsage(HANDLE hProcess)
     BYTE ProcessVmCounters = 3;
     NTSTATUS status = NtQueryInformationProcess(hProcess, (PROCESSINFOCLASS)ProcessVmCounters, &vmCounters, sizeof(vmCounters), nullptr);
 
-    if (NT_SUCCESS(status))
+    if(NT_SUCCESS(status))
         memoryUsage = vmCounters.PrivateWorkingSetSize / (1024.0 * 1024.0); //Convert to MB
     else
     {
         //Fallback to GetProcessMemoryInfo if NT API fails
         PROCESS_MEMORY_COUNTERS pmc;
-        if (GetProcessMemoryInfo(hProcess, &pmc, sizeof(pmc)))
+        if(GetProcessMemoryInfo(hProcess, &pmc, sizeof(pmc)))
             memoryUsage = pmc.WorkingSetSize / (1024.0 * 1024.0);
     }
 
@@ -680,7 +680,7 @@ double CTMProcessScreen::CalculateCpuUsage(HANDLE hProcess, DWORD processId,
 {
     //Get the current process times (we dont need ftProcCreation and ftProcExit, but we still need to pass it to the function)
     FILETIME ftProcCreation, ftProcExit, ftProcKernel, ftProcUser;
-    if (!GetProcessTimes(hProcess, &ftProcCreation, &ftProcExit, &ftProcKernel, &ftProcUser))
+    if(!GetProcessTimes(hProcess, &ftProcCreation, &ftProcExit, &ftProcKernel, &ftProcUser))
         return -1.0;
 
     return CalculateCpuUsageDelta(processId, ftSysKernel, ftSysUser,

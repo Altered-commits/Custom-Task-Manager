@@ -85,7 +85,7 @@ bool CTMMisc::PromptUserForAdministratorAccess()
     //Get the file name of current executable
     WCHAR filePath[MAX_PATH];
 
-    if (!GetModuleFileNameW(NULL, filePath, MAX_PATH))
+    if(!GetModuleFileNameW(NULL, filePath, MAX_PATH))
     {
         CTM_LOG_ERROR("Failed to get executable path. Error code: ", GetLastError());
         return false;

@@ -40,7 +40,7 @@ LONG CTMCriticalResourceGuard::CTMUnhandledExceptionFilter(EXCEPTION_POINTERS *e
 
 BOOL CTMCriticalResourceGuard::CTMCtrlHandler(DWORD ctrlType)
 {
-    switch (ctrlType)
+    switch(ctrlType)
     {
         case CTRL_C_EVENT:        //CTRL + C pressed in Console
         case CTRL_CLOSE_EVENT:    //Console window being closed

@@ -181,27 +181,14 @@ void CTMApp::RenderNCRegionButton(const char* buttonLabel, const ImVec2& buttonS
 void CTMApp::HandleMessages()
 {
     MSG msg;
-    
-    // auto targetFrameTime = std::chrono::milliseconds(16);  // ~60 FPS (16ms per frame)
-    // auto frameStartTime = std::chrono::high_resolution_clock::now();
 
     while(::PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE))
     {
         ::TranslateMessage(&msg);
         ::DispatchMessage(&msg);
-        if (msg.message == WM_QUIT)
+        if(msg.message == WM_QUIT)
             done = true;
     }
-
-    // //Calculate time spent in message handling
-    // auto frameEndTime = std::chrono::high_resolution_clock::now();
-    // auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(frameEndTime - frameStartTime);
-
-    // //Sleep to limit the frame rate (if we have more time left)
-    // if (elapsedTime < targetFrameTime) {
-    //     auto sleepDuration = targetFrameTime - elapsedTime;
-    //     Sleep(sleepDuration.count());
-    // }
 }
 
 bool CTMApp::HandleOcclusion() 
@@ -381,7 +368,7 @@ LRESULT WINAPI CTMApp::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
     //Rest of the times, retrieve the 'this' pointer and call the actual window handler
     CTMApp* pApp = reinterpret_cast<CTMApp*>(::GetWindowLongPtr(hWnd, GWLP_USERDATA));
 
-    if (pApp)
+    if(pApp)
         return pApp->HandleWndProc(hWnd, msg, wParam, lParam);
 
     return ::DefWindowProcW(hWnd, msg, wParam, lParam);
@@ -389,10 +376,10 @@ LRESULT WINAPI CTMApp::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 
 LRESULT WINAPI CTMApp::HandleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+    if(ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
         return true;
 
-    switch (msg)
+    switch(msg)
     {
         //Handling this event allows us to extend client area into the title bar region
         case WM_NCCALCSIZE:
@@ -462,22 +449,22 @@ LRESULT WINAPI CTMApp::HandleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
 
                 RECT clientRect;
                 GetClientRect(hWnd, &clientRect);
-
-                if (mousePoint.x < borderThickness)
+                
+                if(mousePoint.x < borderThickness)
                 {
-                    if (mousePoint.y < borderThickness)
+                    if(mousePoint.y < borderThickness)
                         return HTTOPLEFT;
                 
                     return HTLEFT;
                 }
-                if (mousePoint.x > clientRect.right - borderThickness)
+                if(mousePoint.x > clientRect.right - borderThickness)
                 {
-                    if (mousePoint.y < borderThickness)
+                    if(mousePoint.y < borderThickness)
                         return HTTOPRIGHT;
 
                     return HTRIGHT;
                 }
-                if (mousePoint.y < borderThickness)
+                if(mousePoint.y < borderThickness)
                     return HTTOP;
 
                 //Just the title bar
@@ -535,7 +522,7 @@ LRESULT WINAPI CTMApp::HandleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
         }
 
         case WM_SYSCOMMAND:
-            if ((wParam & 0xfff0) == SC_KEYMENU) // Disable ALT application menu
+            if((wParam & 0xfff0) == SC_KEYMENU) // Disable ALT application menu
                 return 0;
             break;
 

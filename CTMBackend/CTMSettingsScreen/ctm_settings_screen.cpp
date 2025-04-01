@@ -83,7 +83,7 @@ void CTMSettingsScreen::RenderComboBox(const char* text, const char* label, cons
             {
                 currentIndex = i;
 
-                if (onChange && onChange)
+                if(onChange && onChange)
                     onChange(i);
             }
             if(isSelected)
@@ -109,7 +109,7 @@ void CTMSettingsScreen::ApplyDisplaySettings()
 
 void CTMSettingsScreen::ApplyDisplayThemeSetting(int themeMode)
 {
-    switch (themeMode)
+    switch(themeMode)
     {
         case 0:
             ImGui::StyleColorsDark();

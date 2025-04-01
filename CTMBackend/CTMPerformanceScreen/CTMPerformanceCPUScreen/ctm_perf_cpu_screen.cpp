@@ -234,7 +234,7 @@ bool CTMPerformanceCPUScreen::CTMConstructorGetCPULogicalInfo()
     //Loop through all the entries in the buffer. Think of it as an array of SYSTEM_LOGICAL_... (i'm not typing it all)
     for(DWORD idx = 0; idx < processorInfoCount; idx++)
     {
-        switch (processorInfoPtr->Relationship)
+        switch(processorInfoPtr->Relationship)
         {
             case RelationProcessorCore:
                 processorCoreCount++; //Count the total number of physical cores
@@ -248,7 +248,7 @@ bool CTMPerformanceCPUScreen::CTMConstructorGetCPULogicalInfo()
             {
                 PCACHE_DESCRIPTOR cache     = &processorInfoPtr->Cache;
                 DWORD             cacheSize = cache->Size;
-                switch (cache->Level)
+                switch(cache->Level)
                 {
                     case 1: //L1 cache
                         processorL1CacheSize += cacheSize;
@@ -485,7 +485,7 @@ void CTMPerformanceCPUScreen::UpdatePerLogicalProcessorInfo()
     //-but for each logical processor.
     //As all containers (except for final usage vector) for processor performance info are guaranteed to be same size-
     //-we can simply use .size() of any vector
-    for (std::size_t i = 0; i < currProcessorPerformanceInfo.size(); i++)
+    for(std::size_t i = 0; i < currProcessorPerformanceInfo.size(); i++)
     {
         auto& currInfoIthIndex = currProcessorPerformanceInfo[i];
         auto& prevInfoIthIndex = prevProcessorPerformanceInfo[i];

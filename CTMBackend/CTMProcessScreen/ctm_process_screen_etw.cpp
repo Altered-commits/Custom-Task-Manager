@@ -110,7 +110,7 @@ bool CTMProcessScreenEventTracing::ConfigureProvider(const GUID& providerGuid, U
     {
         CTM_LOG_ERROR_NONL("Failed to ", (controlCode == EVENT_CONTROL_CODE_ENABLE_PROVIDER ? "enable" : "disable"), " provider(Data1): ",
                     providerGuid.Data1);
-        switch (status)
+        switch(status)
         {
             case ERROR_ACCESS_DENIED:
                 CTM_LOG_TEXT(". Access denied. Maybe the application did not gain enough Administrator privileges.");
@@ -215,14 +215,14 @@ void CTMProcessScreenEventTracing::WritePropInfoToMap(PEVENT_RECORD eventRecord,
     PROPERTY_DATA_DESCRIPTOR propertyData = {};
 
     //Loop through properties and find the one we require
-    for (ULONG i = 0; i < eventInfo->PropertyCount; ++i)
+    for(ULONG i = 0; i < eventInfo->PropertyCount; ++i)
     {
         LPCWSTR propNameW = reinterpret_cast<LPCWSTR>(reinterpret_cast<PBYTE>(eventInfo) + eventInfo->EventPropertyInfoArray[i].NameOffset);
 
         propertyData.PropertyName = reinterpret_cast<ULONGLONG>(propNameW);
         propertyData.ArrayIndex = 0;
 
-        switch (eventType)
+        switch(eventType)
         {
             case HandlePropertyForEventType::KernelNetworkTcpUdp:
             {
@@ -231,13 +231,13 @@ void CTMProcessScreenEventTracing::WritePropInfoToMap(PEVENT_RECORD eventRecord,
                 if(wcscmp(propNameW, L"PID") == 0)
                 {
                     status = TdhGetProperty(eventRecord, 0, nullptr, 1, &propertyData, sizeof(processId), reinterpret_cast<PBYTE>(&processId));
-                    if (status != ERROR_SUCCESS)
+                    if(status != ERROR_SUCCESS)
                         CTM_LOG_ERROR("Failed to get PID property from Kernel-Network. Error code: ", status);
                 }
                 else if(wcscmp(propNameW, L"size") == 0)
                 {
                     status = TdhGetProperty(eventRecord, 0, nullptr, 1, &propertyData, sizeof(processUsage), reinterpret_cast<PBYTE>(&processUsage));
-                    if (status != ERROR_SUCCESS)
+                    if(status != ERROR_SUCCESS)
                         CTM_LOG_ERROR("Failed to get size property from Kernel-Network. Error code: ", status);
                 }
             }
@@ -248,7 +248,7 @@ void CTMProcessScreenEventTracing::WritePropInfoToMap(PEVENT_RECORD eventRecord,
                 if(wcscmp(propNameW, L"IOSize") == 0)
                 {
                     status = TdhGetProperty(eventRecord, 0, nullptr, 1, &propertyData, sizeof(processUsage), reinterpret_cast<PBYTE>(&processUsage));
-                    if (status != ERROR_SUCCESS)
+                    if(status != ERROR_SUCCESS)
                         CTM_LOG_ERROR("Failed to get IOSize property from Kernel-File. Error code: ", status);
                 }
             }
@@ -279,7 +279,7 @@ void WINAPI CTMProcessScreenEventTracing::EventCallback(PEVENT_RECORD eventRecor
     //Check if the provider is Kernel Network
     if(InlineIsEqualGUID(eventGuid, krnlNetworkGuid))
     {
-        switch (eventId)
+        switch(eventId)
         {
             //TCPIPDatasent
             case 10: // IPv4
@@ -300,7 +300,7 @@ void WINAPI CTMProcessScreenEventTracing::EventCallback(PEVENT_RECORD eventRecor
     //The provider is Kernel File
     else
     {
-        switch (eventId)
+        switch(eventId)
         {
             //Read
             case 15:

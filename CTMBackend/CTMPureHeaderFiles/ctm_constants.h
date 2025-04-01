@@ -33,7 +33,7 @@
 
 //Client Region (aka the screen below title bar) sidebar width
 #define CREGION_SIDEBAR_WIDTH         (70)
-#define CREGION_PERFSCR_SIDEBAR_WIDTH CREGION_SIDEBAR_WIDTH //Performance screen sidebar width
+#define CREGION_PERFSCR_SIDEBAR_WIDTH CREGION_SIDEBAR_WIDTH
 
 /*
  * I also decided to define some common macros which i could use around files

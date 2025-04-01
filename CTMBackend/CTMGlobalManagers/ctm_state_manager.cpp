@@ -87,6 +87,6 @@ void CTMStateManager::SaveSettings()
         return;
     
     //We opened the file, write the unordered map to it with a newline at the end
-    for (auto &&[key, value] : settingsMap)
+    for(auto &&[key, value] : settingsMap)
         outFile << key << '=' << value << '\n';
 }
